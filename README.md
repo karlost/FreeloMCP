@@ -111,88 +111,6 @@ Pro integraci s Cline vytvořte soubor `cline_mcp_settings.json` s následujíc�
 npm test
 ```
 
-## Struktura projektu
-
-- `server.js` - Hlavní soubor REST API serveru
-- `mcp-server.js` - Hlavní soubor MCP serveru
-- `bin/freelo-mcp.js` - Spustitelný soubor pro npx
-- `routes/` - Definice API endpointů pro REST API
-- `controllers/` - Kontrolery pro zpracování požadavků
-- `middleware/` - Middleware funkce (autentizace, validace, atd.)
-- `utils/` - Pomocné funkce a nástroje
-- `tests/` - Testy
-- `cline_mcp_settings.json` - Konfigurační soubor pro Cline MCP
-
-## Implementované endpointy REST API
-
-Tyto endpointy jsou dostupné přes REST API server.
-
-### Projects
-
-- **POST /api/v1/projects** - Vytvoření projektu
-- **GET /api/v1/projects** - Získání vlastních projektů (včetně tasklistů)
-- **GET /api/v1/all-projects** - Získání všech projektů (vlastněné i pozvané)
-- **GET /api/v1/invited-projects** - Získání pozvaných projektů
-- **GET /api/v1/archived-projects** - Získání archivovaných projektů
-- **GET /api/v1/template-projects** - Získání šablon projektů
-- **GET /api/v1/user/{user_id}/all-projects** - Získání projektů uživatele
-- **GET /api/v1/project/{project_id}/workers** - Správa pracovníků projektu
-- **POST /api/v1/project/{project_id}/remove-workers/by-ids** - Odstranění pracovníků podle ID
-- **POST /api/v1/project/{project_id}/remove-workers/by-emails** - Odstranění pracovníků podle emailů
-- **POST /api/v1/project/{project_id}/archive** - Archivace projektu
-- **POST /api/v1/project/{project_id}/activate** - Aktivace projektu
-- **GET /api/v1/project/{project_id}** - Detail projektu
-- **DELETE /api/v1/project/{project_id}** - Smazání projektu
-- **POST /api/v1/project/create-from-template/{template_id}** - Vytvoření projektu ze šablony
-
-### Pinned Items
-
-- **GET /api/v1/project/{project_id}/pinned-items** - Získání všech připnutých položek v projektu
-- **POST /api/v1/project/{project_id}/pinned-items** - Připnutí položky do projektu
-- **DELETE /api/v1/pinned-item/{pinned_item_id}** - Smazání připnuté položky
-
-### Tasklists
-
-- **POST /api/v1/project/{project_id}/tasklists** - Vytvoření tasklistu v projektu
-- **GET /api/v1/all-tasklists** - Získání všech tasklistů (globálně nebo dle projektu)
-- **GET /api/v1/project/{project_id}/tasklist/{tasklist_id}/assignable-workers** - Získání přiřaditelných pracovníků pro tasklist
-- **GET /api/v1/tasklist/{tasklist_id}** - Detail tasklistu
-- **POST /api/v1/tasklist/create-from-template/{template_id}** - Vytvoření tasklistu ze šablony
-
-### Tasks
-
-- **POST /api/v1/project/{project_id}/tasklist/{tasklist_id}/tasks** - Vytvoření úkolu
-- **GET /api/v1/project/{project_id}/tasklist/{tasklist_id}/tasks** - Získání úkolů v tasklistu
-- **GET /api/v1/all-tasks** - Získání všech úkolů (globálně, s filtry)
-- **GET /api/v1/tasklist/{tasklist_id}/finished-tasks** - Získání dokončených úkolů v tasklistu
-- **POST /api/v1/task/{task_id}/activate** - Aktivace úkolu
-- **POST /api/v1/task/{task_id}/finish** - Dokončení úkolu
-- **POST /api/v1/task/{task_id}/move/{tasklist_id}** - Přesun úkolu
-- **GET /api/v1/task/{task_id}** - Detail úkolu
-- **POST /api/v1/task/{task_id}** - Editace úkolu
-- **DELETE /api/v1/task/{task_id}** - Smazání úkolu
-- **GET /api/v1/task/{task_id}/description** - Získání popisu úkolu
-- **POST /api/v1/task/{task_id}/description** - Aktualizace popisu úkolu
-- **POST /api/v1/task/{task_id}/reminder** - Vytvoření připomínky úkolu
-- **DELETE /api/v1/task/{task_id}/reminder** - Smazání připomínky úkolu
-- **GET /api/v1/public-link/task/{task_id}** - Získání veřejného odkazu na úkol
-- **DELETE /api/v1/public-link/task/{task_id}** - Smazání veřejného odkazu na úkol
-- **POST /api/v1/task/create-from-template/{template_id}** - Vytvoření úkolu ze šablony
-- **POST /api/v1/task/{task_id}/total-time-estimate** - Vytvoření celkového odhadu času
-- **DELETE /api/v1/task/{task_id}/total-time-estimate** - Smazání celkového odhadu času
-- **POST /api/v1/task/{task_id}/users-time-estimates/{user_id}** - Vytvoření uživatelského odhadu času
-- **DELETE /api/v1/task/{task_id}/users-time-estimates/{user_id}** - Smazání uživatelského odhadu času
-
-### Subtasks
-
-- **GET /api/v1/task/{task_id}/subtasks** - Získání podúkolů v úkolu
-- **POST /api/v1/task/{task_id}/subtasks** - Vytvoření podúkolu
-
-### Task Labels
-
-- **POST /api/v1/task-labels** - Vytvoření štítků úkolů
-- **POST /api/v1/task-labels/add-to-task/{task_id}** - Přidání štítků k úkolu
-- **POST /api/v1/task-labels/remove-from-task/{task_id}** - Odstranění štítků z úkolu
 
 ## Autentizace
 
@@ -217,26 +135,73 @@ Při použití MCP serveru je autentizace možná dvěma způsoby:
      - `userAgent` - Identifikace aplikace
    - Tyto parametry přepíší hodnoty z proměnných prostředí, pokud jsou zadány
 
-## Implementované MCP nástroje (tools)
+## Dostupné MCP nástroje
 
-MCP server poskytuje následující nástroje pro práci s Freelo API:
+Podrobný přehled všech nástrojů a jejich stavu implementace je uveden v sekci [Stav implementace MCP nástrojů](#stav-implementace-mcp-nástrojů) níže.
 
-| Kategorie | Nástroj | Popis |
-|-----------|---------|-------|
-| **Projekty** | `get_projects` | Získání vlastních projektů |
-| | `get_all_projects` | Získání všech projektů |
-| **Úkoly** | `get_all_tasks` | Získání všech úkolů (globálně, s filtry) |
-| | `create_task` | Vytvoření nového úkolu v tasklistu |
-| | `get_task_details` | Získání detailu konkrétního úkolu |
-| | `edit_task` | Úprava existujícího úkolu |
-| | `delete_task` | Smazání úkolu |
-| **Tasklisty** | `get_project_tasklists` | Získání taskistů pro projekt |
-| | `create_tasklist` | Vytvoření nového tasklistu v projektu |
-| **Uživatelé** | `get_users` | Získání seznamu všech uživatelů |
-| **Soubory** | `get_all_files` | Získání seznamu všech souborů a dokumentů |
-| **Podúkoly** | `create_subtask` | Vytvoření nového podúkolu k úkolu |
-| | `get_subtasks` | Získání seznamu podúkolů úkolu |
-| **Komentáře** | `create_comment` | Přidání komentáře k úkolu |
+## Chybějící funkce
+
+Následující funkce ještě nejsou implementovány v MCP serveru:
+
+- [ ] Podúkoly - kompletní správa podúkolů (editace, mazání)
+- [ ] Editace a mazání úkolů - rozšířená funkcionalita
+- [ ] Vytváření tasklistů - kompletní implementace
+- [ ] Přiřazování uživatelů - správa uživatelů v projektech a úkolech
+- [ ] Komentáře - kompletní implementace komentářů k úkolům
+- [ ] Přílohy - nahrávání a správa příloh
+- [ ] Štítky - kompletní implementace štítků pro úkoly
+- [ ] Pokročilé filtrování - implementace všech filtrovacích možností
+- [ ] Detailní pohledy - implementace různých pohledů na data
+- [ ] Odhady času - správa odhadů času pro úkoly
+- [ ] Notifikace - implementace notifikací
+- [ ] Připnuté položky - správa připnutých položek v projektech
+- [ ] Veřejné odkazy - vytváření a správa veřejných odkazů
+- [ ] Vlastní pole - implementace vlastních polí pro úkoly
+- [ ] Archivace a aktivace - správa stavu projektů a úkolů
+
+## Stav implementace MCP nástrojů
+
+Následující tabulka zobrazuje stav implementace jednotlivých MCP nástrojů:
+
+| Kategorie | Nástroj | Popis | Stav |
+|-----------|---------|-------|------|
+| **Projekty** | `get_projects` | Získání vlastních projektů | ✅ |
+| | `get_all_projects` | Získání všech projektů | ✅ |
+| | `create_project` | Vytvoření nového projektu | ❌ |
+| | `get_project_details` | Získání detailu projektu | ❌ |
+| | `archive_project` | Archivace projektu | ❌ |
+| | `activate_project` | Aktivace projektu | ❌ |
+| | `delete_project` | Smazání projektu | ❌ |
+| **Úkoly** | `get_all_tasks` | Získání všech úkolů (globálně, s filtry) | ✅ |
+| | `create_task` | Vytvoření nového úkolu v tasklistu | ✅ |
+| | `get_task_details` | Získání detailu konkrétního úkolu | ✅ |
+| | `edit_task` | Úprava existujícího úkolu | ✅ |
+| | `delete_task` | Smazání úkolu | ❌ |
+| | `finish_task` | Dokončení úkolu | ❌ |
+| | `activate_task` | Aktivace úkolu | ❌ |
+| | `move_task` | Přesun úkolu do jiného tasklistu | ❌ |
+| **Tasklisty** | `get_project_tasklists` | Získání taskistů pro projekt | ✅ |
+| | `create_tasklist` | Vytvoření nového tasklistu v projektu | ❌ |
+| | `get_tasklist_details` | Získání detailu tasklistu | ❌ |
+| **Uživatelé** | `get_users` | Získání seznamu všech uživatelů | ✅ |
+| | `get_project_workers` | Získání pracovníků projektu | ❌ |
+| | `remove_workers` | Odstranění pracovníků z projektu | ❌ |
+| **Soubory** | `get_all_files` | Získání seznamu všech souborů a dokumentů | ✅ |
+| | `upload_file` | Nahrání souboru | ❌ |
+| | `download_file` | Stažení souboru | ❌ |
+| **Podúkoly** | `create_subtask` | Vytvoření nového podúkolu k úkolu | ❌ |
+| | `get_subtasks` | Získání seznamu podúkolů úkolu | ❌ |
+| | `edit_subtask` | Úprava podúkolu | ❌ |
+| | `delete_subtask` | Smazání podúkolu | ❌ |
+| **Komentáře** | `create_comment` | Přidání komentáře k úkolu | ❌ |
+| | `get_task_comments` | Získání komentářů k úkolu | ❌ |
+| | `edit_comment` | Úprava komentáře | ❌ |
+| | `delete_comment` | Smazání komentáře | ❌ |
+| **Štítky** | `create_label` | Vytvoření štítku | ❌ |
+| | `add_label_to_task` | Přidání štítku k úkolu | ❌ |
+| | `remove_label_from_task` | Odstranění štítku z úkolu | ❌ |
+| **Odhady času** | `set_time_estimate` | Nastavení odhadu času | ❌ |
+| | `delete_time_estimate` | Smazání odhadu času | ❌ |
 
 ## Příspěvky a další vývoj
 
