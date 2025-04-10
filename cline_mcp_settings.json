@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "freelo-mcp": {
+      "command": "node",
+      "args": ["bin/freelo-mcp.js"],
+      "env": {
+        "NODE_ENV": "production",
+        "FREELO_EMAIL": "filip@wedesin.cz",
+        "FREELO_API_KEY": "JhHZUItmQ5JGZRn4tSmqAF0ZKtwzMfi9ipbAwoMZGAU",
+        "FREELO_USER_AGENT": "freelo mcp"
+      },
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
