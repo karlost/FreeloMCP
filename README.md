@@ -1,9 +1,15 @@
 # Freelo MCP Server
 
+<p align="center">
+  <a href="https://www.freelo.io/cs">
+    <img src="logo.png" alt="Freelo Logo" width="300">
+  </a>
+</p>
+
 [![NPM Version](https://img.shields.io/npm/v/freelo-mcp.svg)](https://www.npmjs.com/package/freelo-mcp)
 [![License](https://img.shields.io/npm/l/freelo-mcp.svg)](https://github.com/karlost/FreeloMCP/blob/main/LICENSE)
 
-MCP Server pro Freelo API v1 - implementace proxy serveru pro komunikaci s Freelo API pomocí Model Context Protocol (MCP).
+MCP Server pro [Freelo](https://www.freelo.io/cs) API v1 - implementace proxy serveru pro komunikaci s Freelo API pomocí Model Context Protocol (MCP). Freelo je česká služba pro projektové řízení a správu úkolů.
 
 ## O projektu
 
@@ -110,7 +116,6 @@ Pro integraci s Cline vytvořte soubor `cline_mcp_settings.json` s následujíc�
 ```bash
 npm test
 ```
-
 
 ## Autentizace
 
