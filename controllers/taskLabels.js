@@ -49,6 +49,21 @@ const removeLabelsFromTask = async (req, res) => {
   }
 };
 
+// Removed non-functional getTaskLabels function
+// /**
+//  * Get all task labels
+//  * @route GET /api/v1/task-labels
+//  */
+// const getTaskLabels = async (req, res) => {
+//   try {
+//     const apiClient = createApiClient(req.auth);
+//     const response = await apiClient.get('/task-labels'); // Assuming GET /task-labels exists based on documentation structure
+//     res.status(200).json(response.data);
+//   } catch (error) {
+//     handleApiError(error, res);
+//   }
+// };
+
 /**
  * Handle API errors
  * @param {Error} error - The error object
@@ -76,6 +91,7 @@ const handleApiError = (error, res) => {
 };
 
 export default {
+  // getTaskLabels, // Removed getTaskLabels export
   createTaskLabels,
   addLabelsToTask,
   removeLabelsFromTask

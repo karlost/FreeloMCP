@@ -14,6 +14,7 @@ router.use(authenticate);
 router.post('/task/:taskId/comments', commentsController.createComment);
 router.get('/task/:taskId/comments', commentsController.getTaskComments);
 router.post('/comment/:commentId', commentsController.updateComment);
+// router.delete('/comment/:commentId', commentsController.deleteComment); // Removed non-functional delete route
 router.get('/all-comments', commentsController.getAllComments);
 
 module.exports = router;

@@ -75,6 +75,22 @@ const handleApiError = (error, res) => {
   }
 };
 
+// Removed non-functional deleteComment function
+// /**
+//  * Delete a comment
+//  * @route DELETE /api/v1/comment/:commentId
+//  */
+// const deleteComment = async (req, res) => {
+//   try {
+//     const apiClient = createApiClient(req.auth);
+//     const { commentId } = req.params;
+//     const response = await apiClient.delete(`/comment/${commentId}`);
+//     res.status(200).json(response.data);
+//   } catch (error) {
+//     handleApiError(error, res);
+//   }
+// };
+
 /**
  * Get all comments for a task
  * @route GET /api/v1/task/:taskId/comments
@@ -132,6 +148,7 @@ const getTaskComments = async (req, res) => {
 export default {
   createComment,
   updateComment,
+  // deleteComment, // Removed deleteComment export
   getAllComments,
   getTaskComments
 };
