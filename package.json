@@ -1,6 +1,6 @@
 {
   "name": "freelo-mcp",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "MCP Server for Freelo API v1",
   "main": "server.js",
   "type": "module",
@@ -12,8 +12,7 @@
     "dev": "nodemon server.js",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --detectOpenHandles",
     "mcp": "node mcp-server.js",
-    "mcp:dev": "nodemon mcp-server.js",
-    "prepare": "npm link"
+    "mcp:dev": "nodemon mcp-server.js"
   },
   "author": "Chodeec (karlost)",
   "license": "MIT",

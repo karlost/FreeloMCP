@@ -131,7 +131,7 @@ FREELO_USER_AGENT=FreeloMCP/2.0.0 (vas@email.cz)
 </details>
 
 <details>
-<parameter name="summary"><b>Tasks (19 tools) - s pokročilými filtry</b></summary>
+<summary><b>Tasks (19 tools) - s pokročilými filtry</b></summary>
 
 **Listing & Details:**
 - `get_all_tasks` - Všechny úkoly s **14 filtry**:
@@ -169,8 +169,10 @@ FREELO_USER_AGENT=FreeloMCP/2.0.0 (vas@email.cz)
 - `delete_task_reminder` - Smazání připomínky
 - `get_public_link` - Veřejný odkaz
 - `delete_public_link` - Smazání odkazu
-- `set_total_time_estimate` - Odhad času (Premium)
-- `delete_total_time_estimate` - Smazání odhadu (Premium)
+- `set_total_time_estimate` - Odhad času (Premium - netestováno)
+- `delete_total_time_estimate` - Smazání odhadu (Premium - netestováno)
+- `set_user_time_estimate` - Odhad pro uživatele (Premium - netestováno)
+- `delete_user_time_estimate` - Smazání odhadu uživatele (Premium - netestováno)
 
 </details>
 
@@ -214,7 +216,7 @@ FREELO_USER_AGENT=FreeloMCP/2.0.0 (vas@email.cz)
 <details>
 <summary><b>Custom Fields (11 tools) - Premium Feature</b></summary>
 
-> ⚠️ **Poznámka:** Custom Fields jsou premium funkce Freelo (402 Payment Required)
+> ⚠️ **Poznámka:** Custom Fields jsou premium funkce Freelo (402 Payment Required). Tyto nástroje nejsou plně testované kvůli omezení tarifu.
 
 - `get_custom_field_types` - Typy polí (text, number, date, bool, enum, link)
 - `get_custom_fields_by_project` - Pole v projektu
@@ -544,3 +546,7 @@ Pokud vám tento projekt pomohl, zvažte:
 ---
 
 <p align="center">Made with ❤️ for Freelo community</p>
+
+<p align="center">
+  <sub>Created and maintained with assistance from <a href="https://claude.ai">Claude Code</a> by Anthropic</sub>
+</p>
