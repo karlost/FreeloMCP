@@ -72,12 +72,11 @@ export function initializeMcpServer() {
   return server;
 }
 
-// Auto-start MCP server when this module is loaded
-// This allows both direct execution (node mcp-server.js) and via bin (npx freelo-mcp)
-const serverInstance = initializeMcpServer();
-const transport = new StdioServerTransport();
+// Function to start stdio server (for bin/npx usage)
+export async function startStdioServer() {
+  const serverInstance = initializeMcpServer();
+  const transport = new StdioServerTransport();
 
-(async () => {
   try {
     await serverInstance.connect(transport);
     // MCP komunikuje přes stdio - nepoužívat console.log()!
@@ -86,4 +85,12 @@ const transport = new StdioServerTransport();
     console.error('Failed to start MCP server:', error);
     process.exit(1);
   }
-})();
+}
+
+// Auto-start only when NOT imported (i.e., run directly or via bin)
+// Check if we're being imported by looking at the call stack
+const isImported = new Error().stack?.includes('mcp-server-sse.js');
+
+if (!isImported) {
+  startStdioServer();
+}

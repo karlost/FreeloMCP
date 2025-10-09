@@ -59,7 +59,7 @@ Nejjednodušší způsob jak začít používat Freelo MCP je přes `npx` - nen�
       "env": {
         "FREELO_EMAIL": "vas@email.cz",
         "FREELO_API_KEY": "VAS_API_KLIC",
-        "FREELO_USER_AGENT": "FreeloMCP/2.0.5 (vas@email.cz)"
+        "FREELO_USER_AGENT": "FreeloMCP/2.1.0 (vas@email.cz)"
       }
     }
   }
@@ -80,7 +80,7 @@ Nejjednodušší způsob jak začít používat Freelo MCP je přes `npx` - nen�
 claude mcp add freelo-mcp \
   --env FREELO_EMAIL=vas@email.cz \
   --env FREELO_API_KEY=VAS_API_KLIC \
-  --env FREELO_USER_AGENT="FreeloMCP/2.0.5 (vas@email.cz)" \
+  --env FREELO_USER_AGENT="FreeloMCP/2.1.0 (vas@email.cz)" \
   -- npx -y freelo-mcp
 ```
 
@@ -112,7 +112,7 @@ npm install
 cat > .env << EOF
 FREELO_EMAIL=vas@email.cz
 FREELO_API_KEY=VAS_API_KLIC
-FREELO_USER_AGENT=FreeloMCP/2.0.5 (vas@email.cz)
+FREELO_USER_AGENT=FreeloMCP/2.1.0 (vas@email.cz)
 EOF
 
 # Spuštění MCP serveru
@@ -130,7 +130,7 @@ node mcp-server.js
       "env": {
         "FREELO_EMAIL": "vas@email.cz",
         "FREELO_API_KEY": "VAS_API_KLIC",
-        "FREELO_USER_AGENT": "FreeloMCP/2.0.5 (vas@email.cz)"
+        "FREELO_USER_AGENT": "FreeloMCP/2.1.0 (vas@email.cz)"
       }
     }
   }
@@ -143,7 +143,7 @@ node mcp-server.js
 claude mcp add freelo-mcp \
   --env FREELO_EMAIL=vas@email.cz \
   --env FREELO_API_KEY=VAS_API_KLIC \
-  --env FREELO_USER_AGENT="FreeloMCP/2.0.5 (vas@email.cz)" \
+  --env FREELO_USER_AGENT="FreeloMCP/2.1.0 (vas@email.cz)" \
   -- node /absolutni/cesta/k/FreeloMCP/mcp-server.js
 ```
 
@@ -164,7 +164,7 @@ claude mcp add freelo-mcp \
       "env": {
         "FREELO_EMAIL": "vas@email.cz",
         "FREELO_API_KEY": "VAS_API_KLIC",
-        "FREELO_USER_AGENT": "FreeloMCP/2.0.5 (vas@email.cz)"
+        "FREELO_USER_AGENT": "FreeloMCP/2.1.0 (vas@email.cz)"
       }
     }
   }
@@ -194,7 +194,7 @@ Windsurf podporuje MCP přes stejný formát jako Claude Desktop:
       "env": {
         "FREELO_EMAIL": "vas@email.cz",
         "FREELO_API_KEY": "VAS_API_KLIC",
-        "FREELO_USER_AGENT": "FreeloMCP/2.0.5 (vas@email.cz)"
+        "FREELO_USER_AGENT": "FreeloMCP/2.1.0 (vas@email.cz)"
       }
     }
   }
@@ -270,10 +270,90 @@ mcpServers:
     env:
       FREELO_EMAIL: vas@email.cz
       FREELO_API_KEY: VAS_API_KLIC
-      FREELO_USER_AGENT: "FreeloMCP/2.0.1 (vas@email.cz)"
+      FREELO_USER_AGENT: "FreeloMCP/2.1.0 (vas@email.cz)"
 ```
 
 2. **Restart LibreChat kontejneru**
+
+#### 8️⃣ n8n (Workflow Automation)
+
+n8n vyžaduje SSE (Server-Sent Events) transport místo stdio. Freelo MCP poskytuje dedikovaný SSE server:
+
+**1. Spuštění SSE serveru:**
+
+Lokálně přes npx:
+```bash
+npx -y freelo-mcp-sse
+```
+
+Nebo pomocí npm scriptu po git clone:
+```bash
+npm run mcp:sse
+```
+
+Nebo s vlastním portem:
+```bash
+PORT=8080 npx -y freelo-mcp-sse
+```
+
+**2. Konfigurace v n8n:**
+
+1. V n8n workflow přidejte **MCP Client Tool** node
+2. V nastavení MCP Client vytvořte nové credentials:
+   - **Transport Type:** SSE
+   - **SSE Endpoint URL:** `http://localhost:3000/sse`
+   - **Message Endpoint URL:** `http://localhost:3000/message`
+
+3. Po připojení budete mít přístup ke všem 98 Freelo tools
+
+**3. Health check:**
+
+Ověřte, že server běží:
+```bash
+curl http://localhost:3000/health
+```
+
+Odpověď:
+```json
+{
+  "status": "ok",
+  "service": "freelo-mcp-sse",
+  "version": "2.1.0",
+  "activeConnections": 0,
+  "endpoints": {
+    "sse": "/sse",
+    "messages": "/message",
+    "health": "/health"
+  }
+}
+```
+
+**4. Docker deployment:**
+
+Pro production použití můžete vytvořit Docker kontejner:
+
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+RUN npm install -g freelo-mcp
+ENV FREELO_EMAIL=vas@email.cz
+ENV FREELO_API_KEY=VAS_API_KLIC
+ENV FREELO_USER_AGENT="FreeloMCP/2.1.0 (vas@email.cz)"
+ENV PORT=3000
+EXPOSE 3000
+CMD ["freelo-mcp-sse"]
+```
+
+```bash
+docker build -t freelo-mcp-sse .
+docker run -p 3000:3000 freelo-mcp-sse
+```
+
+**Poznámky:**
+- SSE server podporuje multiple concurrent connections
+- Každé připojení má vlastní session ID
+- Session se automaticky vyčistí při odpojení klienta
+- CORS je povoleno pro všechny origins
 
 ## 📚 Dostupné MCP Tools
 
@@ -699,6 +779,16 @@ Příspěvky jsou vítány!
 5. Otevřete Pull Request
 
 ## 📝 Changelog
+
+### v2.1.0 (2025-10-09) - SSE Transport pro n8n! 🚀
+- ✨ **NOVÁ FUNKCE:** Přidán SSE (Server-Sent Events) transport pro n8n a jiné HTTP klienty
+- 🌐 Nový bin příkaz: `freelo-mcp-sse` pro spuštění HTTP serveru
+- 📡 SSE endpoints: `/sse`, `/message`, `/health`
+- 🔄 Podpora multiple concurrent connections s session management
+- 🐳 Docker-ready deployment s environment variables
+- 🔧 Refaktoring mcp-server.js - export `initializeMcpServer()` funkce
+- 📚 Rozšířená dokumentace o n8n setup a Docker deployment
+- ✅ Kompletně otestováno - SSE server běží stabilně
 
 ### v2.0.5 (2025-10-09) - NPX instalace funguje! 🎉
 - 🐛 **KRITICKÁ OPRAVA:** Odstraněn `isMainModule` check který bránil npx spuštění
