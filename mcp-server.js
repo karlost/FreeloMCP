@@ -11,9 +11,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Validate environment variables
+// Note: MCP servers communicate via stdio, so we cannot use console.log/warn
+// Missing env vars will cause authentication errors when tools are called
 if (!process.env.FREELO_EMAIL || !process.env.FREELO_API_KEY || !process.env.FREELO_USER_AGENT) {
-  console.warn('Warning: One or more environment variables are missing (FREELO_EMAIL, FREELO_API_KEY, FREELO_USER_AGENT)');
-  console.warn('Tools will require explicit authentication parameters.');
+  // Env vars missing - tools will fail if auth params not provided
 }
 
 // Import tool registrations
@@ -81,9 +82,10 @@ if (isMainModule) {
   (async () => {
     try {
       await serverInstance.connect(transport);
-      console.log('Freelo MCP Server is running...');
+      // MCP komunikuje přes stdio - nepoužívat console.log()!
     } catch (error) {
-      console.error('Failed to start server:', error);
+      // Log pouze do stderr v případě kritické chyby
+      console.error('Failed to start MCP server:', error);
       process.exit(1);
     }
   })();
