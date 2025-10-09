@@ -3,43 +3,19 @@
 /**
  * Freelo MCP Server CLI
  * Spustitelný soubor pro npx
+ *
+ * Tento soubor pouze importuje a spouští MCP server.
+ * DŮLEŽITÉ: Nepoužívat console.log() - porušuje MCP protokol!
  */
 
-import path from 'path';
 import { fileURLToPath } from 'url';
-import { spawn } from 'child_process';
+import { dirname, join } from 'path';
 
-// Získání cesty k aktuálnímu adresáři
+// Získání cesty k MCP serveru
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, '..');
+const __dirname = dirname(__filename);
+const mcpServerPath = join(__dirname, '..', 'mcp-server.js');
 
-// Cesta k MCP serveru
-const mcpServerPath = path.join(rootDir, 'mcp-server.js');
-
-// Spuštění MCP serveru
-console.log('Starting Freelo MCP Server...');
-console.log(`Server path: ${mcpServerPath}`);
-
-// Spustit MCP server jako child process
-const mcpServer = spawn('node', [mcpServerPath], {
-  stdio: 'inherit',
-  cwd: rootDir
-});
-
-// Zpracování ukončení procesu
-mcpServer.on('close', (code) => {
-  console.log(`Freelo MCP Server exited with code ${code}`);
-  process.exit(code);
-});
-
-// Zpracování signálů pro ukončení
-process.on('SIGINT', () => {
-  console.log('Received SIGINT. Shutting down Freelo MCP Server...');
-  mcpServer.kill('SIGINT');
-});
-
-process.on('SIGTERM', () => {
-  console.log('Received SIGTERM. Shutting down Freelo MCP Server...');
-  mcpServer.kill('SIGTERM');
-});
+// Import a spuštění MCP serveru
+// MCP komunikuje přes stdio, proto nesmíme používat console.log
+await import(mcpServerPath);
