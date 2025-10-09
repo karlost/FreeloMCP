@@ -1,6 +1,6 @@
 {
   "name": "freelo-mcp",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "MCP Server for Freelo API v1",
   "main": "server.js",
   "type": "module",
