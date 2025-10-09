@@ -37,26 +37,50 @@ MCP Server pro [Freelo](https://www.freelo.io/cs) API v1 - kompletní implementa
 
 ## 🚀 Rychlý start
 
-### Instalace
+### Instalace přes NPX (doporučeno)
 
-```bash
-# Klonování repozitáře
-git clone https://github.com/karlost/FreeloMCP.git
-cd FreeloMCP
+Nejjednodušší způsob jak začít používat Freelo MCP je přes `npx` - není potřeba nic instalovat!
 
-# Instalace závislostí
-npm install
+#### 1️⃣ Pro Claude Desktop (Anthropic Desktop)
+
+1. **Najděte konfigurační soubor:**
+   - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+   - Linux: `~/.config/Claude/claude_desktop_config.json`
+
+2. **Přidejte Freelo MCP server do konfigurace:**
+
+```json
+{
+  "mcpServers": {
+    "freelo": {
+      "command": "npx",
+      "args": ["-y", "freelo-mcp"],
+      "env": {
+        "FREELO_EMAIL": "vas@email.cz",
+        "FREELO_API_KEY": "VAS_API_KLIC",
+        "FREELO_USER_AGENT": "FreeloMCP/2.0.1 (vas@email.cz)"
+      }
+    }
+  }
+}
 ```
 
-### Konfigurace pro Claude Code
+3. **Restartujte Claude Desktop**
 
-1. **Přidání MCP serveru:**
+4. **Ověření:**
+   - V Claude Desktop byste měli vidět 🔌 ikonu v dolním panelu
+   - Zkuste: "Zobraz moje Freelo projekty"
+
+#### 2️⃣ Pro Claude Code (CLI)
+
+1. **Přidání MCP serveru jedním příkazem:**
 
 ```bash
-claude mcp add freelo-mcp "node /cesta/k/FreeloMCP/mcp-server.js" \
+claude mcp add freelo-mcp "npx -y freelo-mcp" \
   --env FREELO_EMAIL=vas@email.cz \
   --env FREELO_API_KEY=VAS_API_KLIC \
-  --env FREELO_USER_AGENT="FreeloMCP/2.0.0 (vas@email.cz)"
+  --env FREELO_USER_AGENT="FreeloMCP/2.0.1 (vas@email.cz)"
 ```
 
 2. **Refresh připojení:**
@@ -69,15 +93,183 @@ claude mcp add freelo-mcp "node /cesta/k/FreeloMCP/mcp-server.js" \
 
 Zkuste v Claude Code: "Zobraz moje Freelo projekty"
 
-### Alternativní konfigurace - .env soubor
+### Alternativní instalace - Git clone
 
-Vytvořte soubor `.env` v kořenovém adresáři:
+Pro vývoj nebo pokud chcete upravovat kód:
 
-```env
+```bash
+# Klonování repozitáře
+git clone https://github.com/karlost/FreeloMCP.git
+cd FreeloMCP
+
+# Instalace závislostí
+npm install
+
+# Vytvoření .env souboru
+cat > .env << EOF
 FREELO_EMAIL=vas@email.cz
 FREELO_API_KEY=VAS_API_KLIC
-FREELO_USER_AGENT=FreeloMCP/2.0.0 (vas@email.cz)
+FREELO_USER_AGENT=FreeloMCP/2.0.1 (vas@email.cz)
+EOF
+
+# Spuštění MCP serveru
+node mcp-server.js
 ```
+
+**Claude Desktop konfigurace s lokální instalací:**
+
+```json
+{
+  "mcpServers": {
+    "freelo": {
+      "command": "node",
+      "args": ["/absolutni/cesta/k/FreeloMCP/mcp-server.js"],
+      "env": {
+        "FREELO_EMAIL": "vas@email.cz",
+        "FREELO_API_KEY": "VAS_API_KLIC",
+        "FREELO_USER_AGENT": "FreeloMCP/2.0.1 (vas@email.cz)"
+      }
+    }
+  }
+}
+```
+
+**Claude Code konfigurace s lokální instalací:**
+
+```bash
+claude mcp add freelo-mcp "node /absolutni/cesta/k/FreeloMCP/mcp-server.js" \
+  --env FREELO_EMAIL=vas@email.cz \
+  --env FREELO_API_KEY=VAS_API_KLIC \
+  --env FREELO_USER_AGENT="FreeloMCP/2.0.1 (vas@email.cz)"
+```
+
+### Konfigurace pro další MCP klienty
+
+#### 3️⃣ Cline (VS Code Extension)
+
+1. **Otevřete VS Code s nainstalovaným Cline**
+2. **Otevřete MCP Settings v Cline** (ikona hamburgeru → MCP Settings)
+3. **Upravte konfigurační soubor:**
+
+```json
+{
+  "mcpServers": {
+    "freelo": {
+      "command": "npx",
+      "args": ["-y", "freelo-mcp"],
+      "env": {
+        "FREELO_EMAIL": "vas@email.cz",
+        "FREELO_API_KEY": "VAS_API_KLIC",
+        "FREELO_USER_AGENT": "FreeloMCP/2.0.1 (vas@email.cz)"
+      }
+    }
+  }
+}
+```
+
+4. **Restart VS Code** nebo reload window (Cmd/Ctrl + Shift + P → "Reload Window")
+5. **Ověření:** V Cline chat zkuste "Zobraz moje Freelo projekty"
+
+#### 4️⃣ Windsurf (Codeium)
+
+Windsurf podporuje MCP přes stejný formát jako Claude Desktop:
+
+1. **Najděte konfigurační soubor:**
+   - macOS: `~/Library/Application Support/Windsurf/settings/mcp_config.json`
+   - Windows: `%APPDATA%\Windsurf\settings\mcp_config.json`
+   - Linux: `~/.config/Windsurf/settings/mcp_config.json`
+
+2. **Přidejte konfiguraci:**
+
+```json
+{
+  "mcpServers": {
+    "freelo": {
+      "command": "npx",
+      "args": ["-y", "freelo-mcp"],
+      "env": {
+        "FREELO_EMAIL": "vas@email.cz",
+        "FREELO_API_KEY": "VAS_API_KLIC",
+        "FREELO_USER_AGENT": "FreeloMCP/2.0.1 (vas@email.cz)"
+      }
+    }
+  }
+}
+```
+
+3. **Restartujte Windsurf**
+
+#### 5️⃣ Zed Editor
+
+1. **Otevřete Zed Settings** (Cmd/Ctrl + ,)
+2. **Přejděte na "Language Models" → "Configure MCP Servers"**
+3. **Přidejte konfiguraci:**
+
+```json
+{
+  "freelo": {
+    "command": "npx",
+    "args": ["-y", "freelo-mcp"],
+    "env": {
+      "FREELO_EMAIL": "vas@email.cz",
+      "FREELO_API_KEY": "VAS_API_KLIC",
+      "FREELO_USER_AGENT": "FreeloMCP/2.0.1 (vas@email.cz)"
+    }
+  }
+}
+```
+
+4. **Restart Zed**
+
+#### 6️⃣ Continue.dev (VS Code/JetBrains)
+
+1. **Otevřete Continue config soubor:**
+   - VS Code: `.continue/config.json` v home directory
+   - JetBrains: stejné umístění
+
+2. **Přidejte MCP server:**
+
+```json
+{
+  "experimental": {
+    "modelContextProtocolServers": [
+      {
+        "name": "freelo",
+        "command": "npx",
+        "args": ["-y", "freelo-mcp"],
+        "env": {
+          "FREELO_EMAIL": "vas@email.cz",
+          "FREELO_API_KEY": "VAS_API_KLIC",
+          "FREELO_USER_AGENT": "FreeloMCP/2.0.1 (vas@email.cz)"
+        }
+      }
+    ]
+  }
+}
+```
+
+3. **Restart IDE**
+
+#### 7️⃣ LibreChat
+
+V LibreChat (self-hosted ChatGPT alternative):
+
+1. **Upravte `librechat.yaml`:**
+
+```yaml
+mcpServers:
+  - name: freelo
+    command: npx
+    args:
+      - "-y"
+      - "freelo-mcp"
+    env:
+      FREELO_EMAIL: vas@email.cz
+      FREELO_API_KEY: VAS_API_KLIC
+      FREELO_USER_AGENT: "FreeloMCP/2.0.1 (vas@email.cz)"
+```
+
+2. **Restart LibreChat kontejneru**
 
 ## 📚 Dostupné MCP Tools
 
