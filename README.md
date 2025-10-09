@@ -59,7 +59,7 @@ Nejjednodušší způsob jak začít používat Freelo MCP je přes `npx` - nen�
       "env": {
         "FREELO_EMAIL": "vas@email.cz",
         "FREELO_API_KEY": "VAS_API_KLIC",
-        "FREELO_USER_AGENT": "FreeloMCP/2.0.1 (vas@email.cz)"
+        "FREELO_USER_AGENT": "FreeloMCP/2.0.5 (vas@email.cz)"
       }
     }
   }
@@ -77,11 +77,14 @@ Nejjednodušší způsob jak začít používat Freelo MCP je přes `npx` - nen�
 1. **Přidání MCP serveru jedním příkazem:**
 
 ```bash
-claude mcp add freelo-mcp "npx -y freelo-mcp" \
+claude mcp add freelo-mcp \
   --env FREELO_EMAIL=vas@email.cz \
   --env FREELO_API_KEY=VAS_API_KLIC \
-  --env FREELO_USER_AGENT="FreeloMCP/2.0.1 (vas@email.cz)"
+  --env FREELO_USER_AGENT="FreeloMCP/2.0.5 (vas@email.cz)" \
+  -- npx -y freelo-mcp
 ```
+
+> **DŮLEŽITÉ:** `--` separátor odděluje Claude CLI options od příkazu MCP serveru!
 
 2. **Refresh připojení:**
 
@@ -109,7 +112,7 @@ npm install
 cat > .env << EOF
 FREELO_EMAIL=vas@email.cz
 FREELO_API_KEY=VAS_API_KLIC
-FREELO_USER_AGENT=FreeloMCP/2.0.1 (vas@email.cz)
+FREELO_USER_AGENT=FreeloMCP/2.0.5 (vas@email.cz)
 EOF
 
 # Spuštění MCP serveru
@@ -127,7 +130,7 @@ node mcp-server.js
       "env": {
         "FREELO_EMAIL": "vas@email.cz",
         "FREELO_API_KEY": "VAS_API_KLIC",
-        "FREELO_USER_AGENT": "FreeloMCP/2.0.1 (vas@email.cz)"
+        "FREELO_USER_AGENT": "FreeloMCP/2.0.5 (vas@email.cz)"
       }
     }
   }
@@ -137,10 +140,11 @@ node mcp-server.js
 **Claude Code konfigurace s lokální instalací:**
 
 ```bash
-claude mcp add freelo-mcp "node /absolutni/cesta/k/FreeloMCP/mcp-server.js" \
+claude mcp add freelo-mcp \
   --env FREELO_EMAIL=vas@email.cz \
   --env FREELO_API_KEY=VAS_API_KLIC \
-  --env FREELO_USER_AGENT="FreeloMCP/2.0.1 (vas@email.cz)"
+  --env FREELO_USER_AGENT="FreeloMCP/2.0.5 (vas@email.cz)" \
+  -- node /absolutni/cesta/k/FreeloMCP/mcp-server.js
 ```
 
 ### Konfigurace pro další MCP klienty
@@ -160,7 +164,7 @@ claude mcp add freelo-mcp "node /absolutni/cesta/k/FreeloMCP/mcp-server.js" \
       "env": {
         "FREELO_EMAIL": "vas@email.cz",
         "FREELO_API_KEY": "VAS_API_KLIC",
-        "FREELO_USER_AGENT": "FreeloMCP/2.0.1 (vas@email.cz)"
+        "FREELO_USER_AGENT": "FreeloMCP/2.0.5 (vas@email.cz)"
       }
     }
   }
@@ -190,7 +194,7 @@ Windsurf podporuje MCP přes stejný formát jako Claude Desktop:
       "env": {
         "FREELO_EMAIL": "vas@email.cz",
         "FREELO_API_KEY": "VAS_API_KLIC",
-        "FREELO_USER_AGENT": "FreeloMCP/2.0.1 (vas@email.cz)"
+        "FREELO_USER_AGENT": "FreeloMCP/2.0.5 (vas@email.cz)"
       }
     }
   }
@@ -696,7 +700,16 @@ Příspěvky jsou vítány!
 
 ## 📝 Changelog
 
-### v2.0.0 (2025-10-09)
+### v2.0.5 (2025-10-09) - NPX instalace funguje! 🎉
+- 🐛 **KRITICKÁ OPRAVA:** Odstraněn `isMainModule` check který bránil npx spuštění
+- ✅ NPX instalace plně funkční: `npx -y freelo-mcp`
+- ✅ Bin soubor zjednodušen (611B → 144B)
+- ✅ Odstraněny všechny console.log/warn z MCP serveru (porušovaly stdio protokol)
+- ✅ Automatické spuštění při načtení modulu
+- ✅ Funguje jak přes npx tak přímým spuštěním
+- 📝 Aktualizovaná dokumentace s `--` separátorem pro Claude Code
+
+### v2.0.0-2.0.4 (2025-10-09)
 - ✅ Kompletní testování 98 MCP tools
 - ✅ Opraveno 11 bugů v API integraci
 - ✅ Přidány token limit fixes (4 tools s pagination)
@@ -705,6 +718,7 @@ Příspěvky jsou vítány!
 - ✅ Tasklist from template fix
 - ✅ 97%+ coverage všech funkcí
 - ✅ Production-ready release
+- 📚 Rozšířená dokumentace pro 7 MCP klientů
 
 ### v1.0.0
 - 🎉 Iniciální release
