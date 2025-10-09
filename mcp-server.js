@@ -72,21 +72,18 @@ export function initializeMcpServer() {
   return server;
 }
 
-// Only initialize and start listening if the script is run directly
-const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+// Auto-start MCP server when this module is loaded
+// This allows both direct execution (node mcp-server.js) and via bin (npx freelo-mcp)
+const serverInstance = initializeMcpServer();
+const transport = new StdioServerTransport();
 
-if (isMainModule) {
-  const serverInstance = initializeMcpServer();
-  const transport = new StdioServerTransport();
-
-  (async () => {
-    try {
-      await serverInstance.connect(transport);
-      // MCP komunikuje přes stdio - nepoužívat console.log()!
-    } catch (error) {
-      // Log pouze do stderr v případě kritické chyby
-      console.error('Failed to start MCP server:', error);
-      process.exit(1);
-    }
-  })();
-}
+(async () => {
+  try {
+    await serverInstance.connect(transport);
+    // MCP komunikuje přes stdio - nepoužívat console.log()!
+  } catch (error) {
+    // Log pouze do stderr v případě kritické chyby
+    console.error('Failed to start MCP server:', error);
+    process.exit(1);
+  }
+})();
