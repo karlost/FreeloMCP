@@ -554,6 +554,22 @@ docker run -p 3000:3000 freelo-mcp-sse
 
 </details>
 
+## 🤖 AI Agent Guide
+
+Pro efektivní použití Freelo MCP s AI agenty (Claude, ChatGPT, atd.) si přečtěte **[AI_GUIDE.md](AI_GUIDE.md)**.
+
+Průvodce obsahuje:
+- ✅ **Quick Start Workflows** - Nejčastější pracovní postupy
+- 🔄 **Data Flow Patterns** - Jak správně propojit tools
+- 🎯 **Tool Selection Guide** - Kdy použít který tool
+- 💡 **Best Practices** - Optimalizace a tipy pro AI agenty
+- 📊 **Common Workflows** - Hotové šablony pro časté úkoly
+- ⚠️ **Error Handling** - Řešení běžných problémů
+
+**Pro AI agenty:** AI_GUIDE.md poskytuje strukturované instrukce, příklady kódu a workflow patterns pro maximální efektivitu práce s Freelo API přes MCP.
+
+---
+
 ## 🔧 Opravené bugy a vylepšení
 
 ### Verze 2.0.0 - Kompletní validation a fixes
@@ -779,6 +795,27 @@ Příspěvky jsou vítány!
 5. Otevřete Pull Request
 
 ## 📝 Changelog
+
+### v2.2.0 (2025-10-11) - AI Usability Upgrade! 🤖
+- ✨ **VÝZNAMNÁ AKTUALIZACE:** Všech 98 tools vylepšeno pro lepší použití s AI agenty
+- 📝 **Tool Descriptions:** Každý tool má nově detailní popis včetně:
+  - Co tool dělá a kdy ho použít
+  - Souvislosti s jinými tools (workflow návaznosti)
+  - Varování pro destruktivní operace
+  - Premium feature označení
+- 🔧 **Parameter Descriptions:** Všechny parametry mají vylepšené popisy s:
+  - Formáty a příklady hodnot (e.g., "197352", "2025-10-11")
+  - Odkazy na source tools (odkud získat potřebná ID)
+  - Rozlišení required vs optional parametrů
+- 📚 **Nový AI_GUIDE.md:** Kompletní průvodce pro AI agenty obsahující:
+  - Quick Start Workflows pro časté úkoly
+  - Data Flow Patterns (jak správně řetězit tools)
+  - Tool Selection Guide (kdy použít který tool)
+  - Common Workflows s příklady kódu
+  - Best Practices a Performance Tips
+  - FAQ a Troubleshooting
+- 🎯 **Výsledek:** AI agenti nyní mnohem lépe rozumí, jak a kdy použít jednotlivé tools
+- ✅ **Pokrytí:** 100% tools upgradováno (Projects, Tasks, Custom Fields, Time Tracking, atd.)
 
 ### v2.1.0 (2025-10-09) - SSE Transport pro n8n! 🚀
 - ✨ **NOVÁ FUNKCE:** Přidán SSE (Server-Sent Events) transport pro n8n a jiné HTTP klienty

@@ -13,8 +13,9 @@ export function registerCoreTools(server) {
   // Tasklists tools
   server.tool(
     'get_project_tasklists',
+    'Fetches all tasklists within a project. Tasklists organize tasks into logical groups or phases (e.g., "To Do", "In Progress", "Done" or "Design", "Development", "Testing"). Essential for understanding project structure before creating or finding tasks. Use this after get_project_details to drill down into project organization.',
     {
-      projectId: z.string()
+      projectId: z.string().describe('Unique project identifier (numeric string, e.g., "197352"). Get from get_projects, get_all_projects, or get_project_details.')
     },
     async ({ projectId }) => {
       try {
@@ -51,6 +52,7 @@ export function registerCoreTools(server) {
   // Users tools
   server.tool(
     'get_users',
+    'Fetches all users in the Freelo workspace. Returns complete user list with names, emails, IDs, roles, and availability. Essential for getting user IDs before assigning tasks, inviting to projects, or managing permissions. Use this as the first step when working with team members.',
     {},
     async () => {
       try {
@@ -82,9 +84,10 @@ export function registerCoreTools(server) {
   // Users tools
   server.tool(
     'remove_workers',
+    'Removes team members from a project by their user IDs. Workers will immediately lose access to the project, tasks, and related data. Use this for managing team composition. For removal by email instead of IDs, use remove_workers_by_emails. Get user IDs from get_project_workers first.',
     {
-      projectId: z.string().describe('ID of the project to remove workers from'),
-      userIds: z.array(z.string()).describe('Array of user IDs to remove from the project')
+      projectId: z.string().describe('Unique project identifier (numeric string, e.g., "197352"). Get from get_projects or get_all_projects.'),
+      userIds: z.array(z.string()).describe('Array of user IDs to remove (e.g., ["12345", "67890"]). Get user IDs from get_project_workers or get_users.')
     },
     async ({ projectId, userIds }) => {
       try {
@@ -118,12 +121,13 @@ export function registerCoreTools(server) {
    // Files tools
   server.tool(
     'get_all_files',
+    'Fetches all files and documents across projects with filtering options. Returns files, directories, links, and documents attached to tasks or uploaded to projects. Supports pagination for large file sets. Use this to find attachments, browse project files, or locate specific documents before downloading with download_file.',
     {
       filters: z.object({
-        projects_ids: z.array(z.number()).optional().describe('Projects IDs array'),
-        type: z.enum(['directory', 'link', 'file', 'document']).optional().describe('Items type'),
-        p: z.number().optional().describe('Page number (starts from 0)')
-      }).optional().describe('Optional filters for files and documents')
+        projects_ids: z.array(z.number()).optional().describe('Filter by project IDs (e.g., [197352, 198000]). Get from get_projects. Omit to search all projects.'),
+        type: z.enum(['directory', 'link', 'file', 'document']).optional().describe('Filter by item type: "directory" (folders), "link" (URL links), "file" (uploaded files), "document" (documents). Omit for all types.'),
+        p: z.number().optional().describe('Page number for pagination, starts at 0 (default: 0). Use for large file collections to avoid token limits.')
+      }).optional().describe('Optional filters - combine to narrow results')
     },
     async ({ filters = {} }) => {
       try {
@@ -155,9 +159,10 @@ export function registerCoreTools(server) {
   // Upload file tool
   server.tool(
     'upload_file',
+    'Uploads a file to Freelo. The file can then be attached to tasks, comments, or stored in project files. Supports any file type. Files are encoded as base64 for transfer. After upload, use the returned file UUID with download_file or to attach to tasks. Maximum file size depends on Freelo plan.',
     {
-      fileData: z.string().describe('Base64-encoded file data'),
-      fileName: z.string().describe('Name of the file')
+      fileData: z.string().describe('File content encoded as base64 string. Convert file bytes to base64 before passing. Example in Node.js: Buffer.from(fileBytes).toString("base64")'),
+      fileName: z.string().describe('Original filename with extension (e.g., "report.pdf", "screenshot.png", "document.docx"). Preserves file type and helps with identification.')
     },
     async ({ fileData, fileName }) => {
       try {
@@ -213,8 +218,9 @@ export function registerCoreTools(server) {
   // Download file tool
   server.tool(
     'download_file',
+    'Downloads a file from Freelo by its UUID. Returns the file content which can be saved locally or processed. Use this after finding files with get_all_files to retrieve the actual file data. The UUID is returned when uploading files or found in file listings.',
     {
-      fileUuid: z.string().describe('UUID of the file to download')
+      fileUuid: z.string().describe('Unique file identifier (UUID format, e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890"). Get from get_all_files or after upload_file.')
     },
     async ({ fileUuid }) => {
       try {
@@ -278,14 +284,15 @@ export function registerCoreTools(server) {
   // Subtasks tools
   server.tool(
     'create_subtask',
+    'Creates a subtask under an existing task. Subtasks help break down complex tasks into smaller, manageable pieces. Each subtask can have its own assignment, description, and due date. Useful for detailed task decomposition and better progress tracking. Use get_subtasks to list existing subtasks.',
     {
-      taskId: z.string(),
+      taskId: z.string().describe('Unique parent task identifier (numeric string, e.g., "25368707"). The subtask will be created under this task. Get from get_all_tasks or get_task_details.'),
       subtaskData: z.object({
-        name: z.string(),
-        description: z.string().optional(),
-        assignedTo: z.string().optional(),
-        dueDate: z.string().optional()
-      })
+        name: z.string().describe('Subtask name - clear and actionable (e.g., "Write unit tests", "Review code", "Update documentation")'),
+        description: z.string().optional().describe('Optional: Detailed subtask description with context or requirements'),
+        assignedTo: z.string().optional().describe('Optional: User ID to assign subtask to (numeric string). Can be different from parent task assignee. Get from get_project_workers.'),
+        dueDate: z.string().optional().describe('Optional: Due date in format YYYY-MM-DD or YYYY-MM-DD HH:MM:SS')
+      }).describe('Subtask creation data')
     },
     async ({ taskId, subtaskData }) => {
       try {
@@ -317,8 +324,9 @@ export function registerCoreTools(server) {
   // Get subtasks tool
   server.tool(
     'get_subtasks',
+    'Fetches all subtasks belonging to a parent task. Returns a list of subtasks with their names, statuses, assignments, and due dates. Essential for understanding task breakdown and progress on complex tasks. Use this before marking tasks complete to ensure all subtasks are done.',
     {
-      taskId: z.string()
+      taskId: z.string().describe('Unique parent task identifier (numeric string, e.g., "25368707"). Returns all subtasks under this task. Get from get_all_tasks or get_task_details.')
     },
     async ({ taskId }) => {
       try {
@@ -352,8 +360,9 @@ export function registerCoreTools(server) {
   // Create tasklist tool
   server.tool(
     'create_tasklist',
+    'Creates a new tasklist (task group) within a project. Tasklists help organize tasks into phases, sprints, or categories. Common examples: "Backlog", "Sprint 1", "Design Phase", "Bug Fixes". After creation, use create_task to add tasks. For creating from templates, use create_tasklist_from_template instead.',
     {
-      projectId: z.string(),
+      projectId: z.string().describe('Unique project identifier where tasklist will be created (numeric string, e.g., "197352"). Get from get_projects or get_all_projects.'),
       tasklistData: z.object({
         name: z.string(),
         description: z.string().optional(),
@@ -390,8 +399,9 @@ export function registerCoreTools(server) {
   // Get task details tool
   server.tool(
     'get_task_details',
+    'Fetches complete details about a specific task including name, description, assignees, due date, priority, status, labels, custom fields, and metadata. Use this after finding tasks with get_all_tasks or get_tasklist_tasks to get full information before editing or taking action. Essential for understanding task context.',
     {
-      taskId: z.string()
+      taskId: z.string().describe('Unique task identifier (numeric string, e.g., "25368707"). Get from get_all_tasks, get_tasklist_tasks, or after create_task.')
     },
     async ({ taskId }) => {
       try {
@@ -423,16 +433,17 @@ export function registerCoreTools(server) {
   // Edit task tool
   server.tool(
     'edit_task',
+    'Updates an existing task with new information. You can modify any combination of name, description, assignment, due date, priority, or status. All fields are optional - only provide the fields you want to change. Get task details with get_task_details first to see current values. For description-only updates, use update_task_description instead.',
     {
-      taskId: z.string(),
+      taskId: z.string().describe('Unique task identifier to update (numeric string, e.g., "25368707"). Get from get_all_tasks or get_task_details.'),
       taskData: z.object({
-        name: z.string().optional(),
-        description: z.string().optional(),
-        assignedTo: z.string().optional(),
-        dueDate: z.string().optional(),
-        priority: z.number().optional(),
-        status: z.string().optional()
-      })
+        name: z.string().optional().describe('Optional: New task name/title'),
+        description: z.string().optional().describe('Optional: New task description (plain text or markdown)'),
+        assignedTo: z.string().optional().describe('Optional: User ID to assign task to (numeric string). Get from get_project_workers.'),
+        dueDate: z.string().optional().describe('Optional: New due date in format YYYY-MM-DD or YYYY-MM-DD HH:MM:SS'),
+        priority: z.number().optional().describe('Optional: Task priority (numeric value, higher = more important)'),
+        status: z.string().optional().describe('Optional: Task status identifier')
+      }).describe('Task update data - only include fields to change')
     },
     async ({ taskId, taskData }) => {
       try {
@@ -464,8 +475,9 @@ export function registerCoreTools(server) {
   // Delete task tool
   server.tool(
     'delete_task',
+    'Permanently deletes a task from Freelo. WARNING: This is irreversible! All task data including description, comments, attachments, subtasks, and history will be lost. Consider using finish_task instead to mark tasks as complete while preserving history. Only use when you are absolutely certain the task should be removed.',
     {
-      taskId: z.string()
+      taskId: z.string().describe('Unique task identifier to permanently delete (numeric string, e.g., "25368707"). WARNING: This is irreversible! Get from get_all_tasks or get_task_details.')
     },
     async ({ taskId }) => {
       try {
@@ -497,8 +509,9 @@ export function registerCoreTools(server) {
   // Finish task tool
   server.tool(
     'finish_task',
+    'Marks a task as finished/completed. The task will be moved to finished state, preserving all data and history. Finished tasks can be reactivated later with activate_task if needed. This is the standard way to complete tasks - much safer than delete_task. Essential for task workflow completion.',
     {
-      taskId: z.string().describe('ID of the task to finish')
+      taskId: z.string().describe('Unique task identifier to mark as finished (numeric string, e.g., "25368707"). Get from get_all_tasks or get_tasklist_tasks.')
     },
     async ({ taskId }) => {
       try {
@@ -530,8 +543,9 @@ export function registerCoreTools(server) {
   // Activate task tool
   server.tool(
     'activate_task',
+    'Reactivates a finished task, moving it back to active state. Use this when a completed task needs to be reopened or when work needs to continue. The task will become visible in active task lists again. Get finished tasks with get_finished_tasks or filter get_all_tasks with state_id=2.',
     {
-      taskId: z.string().describe('ID of the task to activate')
+      taskId: z.string().describe('Unique task identifier to reactivate (numeric string, e.g., "25368707"). Must be a finished task - get from get_finished_tasks.')
     },
     async ({ taskId }) => {
       try {
@@ -731,8 +745,9 @@ export function registerCoreTools(server) {
   // Get invited projects
   server.tool(
     'get_invited_projects',
+    'Fetches projects where you have been invited as a collaborator but are not the owner. Returns projects shared with you by other users. Supports pagination. This is useful for viewing projects you contribute to but don\'t directly manage. For your own projects, use get_projects.',
     {
-      page: z.number().optional().describe('Page number (default: 0)')
+      page: z.number().optional().describe('Page number for pagination, starts at 0 (default: 0). Each page returns a batch of projects.')
     },
     async ({ page }) => {
       try {
@@ -765,8 +780,9 @@ export function registerCoreTools(server) {
   // Get archived projects
   server.tool(
     'get_archived_projects',
+    'Fetches archived projects in Freelo. Archived projects are completed or inactive projects hidden from default views but with all data preserved. Use this to find project IDs for reactivation with activate_project or to access historical project data. Supports pagination.',
     {
-      page: z.number().optional().describe('Page number (default: 0)')
+      page: z.number().optional().describe('Page number for pagination, starts at 0 (default: 0). Each page returns a batch of archived projects.')
     },
     async ({ page }) => {
       try {
@@ -799,14 +815,15 @@ export function registerCoreTools(server) {
   // Get template projects
   server.tool(
     'get_template_projects',
+    'Fetches project templates in Freelo. Templates are reusable project structures with predefined tasklists, tasks, and settings. Use this to find templates for creating new projects with create_project_from_template. Supports filtering by name, date, tags, users, and pagination.',
     {
       filters: z.object({
-        order_by: z.enum(['name', 'date_add', 'date_edited_at']).optional(),
-        order: z.enum(['asc', 'desc']).optional(),
-        tags: z.array(z.string()).optional(),
-        users_ids: z.array(z.string()).optional(),
-        page: z.number().optional()
-      }).optional().describe('Optional filters for template projects')
+        order_by: z.enum(['name', 'date_add', 'date_edited_at']).optional().describe('Sort column: "name" (alphabetically), "date_add" (creation date), or "date_edited_at" (last modification)'),
+        order: z.enum(['asc', 'desc']).optional().describe('Sort direction: "asc" (ascending/A-Z/oldest first) or "desc" (descending/Z-A/newest first)'),
+        tags: z.array(z.string()).optional().describe('Filter by template tags (array of tag strings)'),
+        users_ids: z.array(z.string()).optional().describe('Filter by user IDs who have access to templates (array of numeric strings)'),
+        page: z.number().optional().describe('Page number for pagination, starts at 0')
+      }).optional().describe('Optional filters for refining template results')
     },
     async ({ filters = {} }) => {
       try {
@@ -840,14 +857,15 @@ export function registerCoreTools(server) {
   // Get user projects
   server.tool(
     'get_user_projects',
+    'Fetches all projects accessible to a specific user (by user ID). Returns projects the user owns or has been invited to. Useful for viewing another team member\'s workload or project portfolio. Supports filtering by project state (active/archived/finished), sorting, and pagination. Get user IDs from get_users first.',
     {
-      userId: z.string().describe('ID of the user'),
+      userId: z.string().describe('Unique user identifier (numeric string, e.g., "12345"). Get user IDs from get_users or get_project_workers.'),
       filters: z.object({
-        states_ids: z.array(z.number()).optional(),
-        order_by: z.enum(['name', 'date_add', 'date_edited_at']).optional(),
-        order: z.enum(['asc', 'desc']).optional(),
-        page: z.number().optional()
-      }).optional().describe('Optional filters')
+        states_ids: z.array(z.number()).optional().describe('Filter by project state IDs: 1=active, 2=archived, 3=template, 4=finished. Example: [1,4] for active and finished projects.'),
+        order_by: z.enum(['name', 'date_add', 'date_edited_at']).optional().describe('Sort column: "name", "date_add" (creation), or "date_edited_at" (last modified)'),
+        order: z.enum(['asc', 'desc']).optional().describe('Sort direction: "asc" (A-Z/oldest first) or "desc" (Z-A/newest first)'),
+        page: z.number().optional().describe('Page number for pagination, starts at 0')
+      }).optional().describe('Optional filters for refining results')
     },
     async ({ userId, filters = {} }) => {
       try {
@@ -881,9 +899,10 @@ export function registerCoreTools(server) {
   // Get project workers
   server.tool(
     'get_project_workers',
+    'Fetches the list of workers (team members) assigned to a specific project. Returns user details including names, emails, roles, and permissions. Essential for understanding team composition before assigning tasks or managing project access. Use remove_workers or remove_workers_by_emails to remove workers, or invite_users_by_ids/invite_users_by_email to add new members.',
     {
-      projectId: z.string().describe('ID of the project'),
-      page: z.number().optional().describe('Page number (default: 0)')
+      projectId: z.string().describe('Unique project identifier (numeric string, e.g., "197352"). Get from get_projects or get_all_projects.'),
+      page: z.number().optional().describe('Page number for pagination, starts at 0 (default: 0). Use for projects with many team members.')
     },
     async ({ projectId, page }) => {
       try {
@@ -916,9 +935,10 @@ export function registerCoreTools(server) {
   // Remove workers by emails
   server.tool(
     'remove_workers_by_emails',
+    'Removes team members from a project by their email addresses. Use this when you know worker emails but not their user IDs. Workers will lose access to the project and its tasks. This is a safer alternative to delete_project when you just want to adjust team composition. For removal by user IDs, use remove_workers instead.',
     {
-      projectId: z.string().describe('ID of the project'),
-      emails: z.array(z.string()).describe('Array of email addresses to remove')
+      projectId: z.string().describe('Unique project identifier (numeric string, e.g., "197352"). Get from get_projects or get_all_projects.'),
+      emails: z.array(z.string()).describe('Array of email addresses to remove from the project (e.g., ["user@example.com", "another@example.com"]). Get emails from get_project_workers.')
     },
     async ({ projectId, emails }) => {
       try {
@@ -952,12 +972,13 @@ export function registerCoreTools(server) {
   // Create project from template
   server.tool(
     'create_project_from_template',
+    'Creates a new project from an existing template. The new project will inherit the template\'s structure including tasklists, tasks, custom fields, and default settings. This is much faster than creating a project manually when you have standardized project structures. Get template IDs from get_template_projects first.',
     {
-      templateId: z.string().describe('ID of the template project'),
+      templateId: z.string().describe('Unique template project identifier (numeric string, e.g., "197352"). Get template IDs from get_template_projects.'),
       projectData: z.object({
-        name: z.string().describe('Name of the new project'),
-        currency_iso: z.enum(['CZK', 'EUR', 'USD']).optional().describe('Currency (CZK, EUR, USD)')
-      }).describe('Data for the new project')
+        name: z.string().describe('Name for the new project - should be descriptive and unique'),
+        currency_iso: z.enum(['CZK', 'EUR', 'USD']).optional().describe('Optional: Project currency (CZK, EUR, or USD). If not specified, inherits from template.')
+      }).describe('Configuration data for the new project')
     },
     async ({ templateId, projectData }) => {
       try {
@@ -993,9 +1014,10 @@ export function registerCoreTools(server) {
   // Get finished tasks in tasklist
   server.tool(
     'get_finished_tasks',
+    'Fetches completed/finished tasks from a specific tasklist. Returns tasks that have been marked as done with finish_task. Useful for reviewing completed work, generating reports, or finding tasks to reactivate. Optionally filter results with fulltext search. For finished tasks across all projects, use get_all_tasks with state_id=2 instead.',
     {
-      tasklistId: z.string().describe('ID of the tasklist'),
-      search_query: z.string().optional().describe('Search query for filtering tasks')
+      tasklistId: z.string().describe('Unique tasklist identifier (numeric string, e.g., "12345"). Get from get_project_tasklists.'),
+      search_query: z.string().optional().describe('Optional: Fulltext search query to filter finished task names (case insensitive, e.g., "bug fix")')
     },
     async ({ tasklistId, search_query }) => {
       try {
@@ -1028,9 +1050,10 @@ export function registerCoreTools(server) {
   // Move task to different tasklist
   server.tool(
     'move_task',
+    'Moves a task from its current tasklist to a different tasklist. The target tasklist can be in the same project or a different project. Task data, comments, attachments, and history are preserved. Use this for reorganizing work or transferring tasks between project phases. The task ID remains the same after moving.',
     {
-      taskId: z.string().describe('ID of the task to move'),
-      targetTasklistId: z.string().describe('ID of the target tasklist')
+      taskId: z.string().describe('Unique task identifier to move (numeric string, e.g., "25368707"). Get from get_all_tasks or get_tasklist_tasks.'),
+      targetTasklistId: z.string().describe('Unique identifier of destination tasklist (numeric string, e.g., "12345"). Can be in same or different project. Get from get_project_tasklists.')
     },
     async ({ taskId, targetTasklistId }) => {
       try {
@@ -1062,8 +1085,9 @@ export function registerCoreTools(server) {
   // Get task description
   server.tool(
     'get_task_description',
+    'Fetches only the description content of a task. More lightweight than get_task_details when you only need the description text. Useful for reading task details without fetching full task metadata. Descriptions can contain plain text or markdown formatting with requirements, acceptance criteria, or notes.',
     {
-      taskId: z.string().describe('ID of the task')
+      taskId: z.string().describe('Unique task identifier (numeric string, e.g., "25368707"). Get from get_all_tasks or get_task_details.')
     },
     async ({ taskId }) => {
       try {
@@ -1095,9 +1119,10 @@ export function registerCoreTools(server) {
   // Update task description
   server.tool(
     'update_task_description',
+    'Updates only the description of a task without affecting other task properties. More efficient than edit_task when only changing the description. Supports plain text or markdown. Use this to add context, requirements, acceptance criteria, or technical notes. Previous description is replaced completely.',
     {
-      taskId: z.string().describe('ID of the task'),
-      description: z.string().describe('New description content')
+      taskId: z.string().describe('Unique task identifier (numeric string, e.g., "25368707"). Get from get_all_tasks or get_task_details.'),
+      description: z.string().describe('New description content in plain text or markdown. Replaces existing description completely. Use empty string to clear description.')
     },
     async ({ taskId, description }) => {
       try {
@@ -1129,12 +1154,13 @@ export function registerCoreTools(server) {
   // Create task reminder
   server.tool(
     'create_task_reminder',
+    'Creates a reminder notification for a task that will be sent at the specified date/time. Users will receive notifications in Freelo to check the task. Useful for follow-ups, deadlines, or periodic reviews. You can remind specific users or use default assignees. Delete with delete_task_reminder if needed.',
     {
-      taskId: z.string().describe('ID of the task'),
+      taskId: z.string().describe('Unique task identifier (numeric string, e.g., "25368707"). Get from get_all_tasks or get_task_details.'),
       reminderData: z.object({
-        date: z.string().describe('Reminder date in ISO 8601 format'),
-        user_ids: z.array(z.string()).optional().describe('Array of user IDs to remind')
-      }).describe('Reminder data')
+        date: z.string().describe('Reminder date and time in ISO 8601 format (e.g., "2025-10-15T14:00:00Z" or "2025-10-15T14:00:00+02:00"). Users will be notified at this time.'),
+        user_ids: z.array(z.string()).optional().describe('Optional: Array of user IDs to remind (e.g., ["12345", "67890"]). If not specified, task assignees are reminded. Get IDs from get_project_workers.')
+      }).describe('Reminder configuration data')
     },
     async ({ taskId, reminderData }) => {
       try {
@@ -1171,8 +1197,9 @@ export function registerCoreTools(server) {
   // Delete task reminder
   server.tool(
     'delete_task_reminder',
+    'Removes an existing reminder from a task. Use this to cancel scheduled reminders that are no longer needed or were set incorrectly. The task itself is not affected - only the reminder is removed. Users will no longer receive the scheduled notification.',
     {
-      taskId: z.string().describe('ID of the task')
+      taskId: z.string().describe('Unique task identifier (numeric string, e.g., "25368707"). Must have an existing reminder. Get from get_all_tasks or get_task_details.')
     },
     async ({ taskId }) => {
       try {
@@ -1204,8 +1231,9 @@ export function registerCoreTools(server) {
   // Get public link for task
   server.tool(
     'get_public_link',
+    'Generates or retrieves a public sharing link for a task. Anyone with this link can view the task details without logging into Freelo - useful for sharing with external stakeholders, clients, or contractors. The link remains active until deleted with delete_public_link. Task content is read-only via public links.',
     {
-      taskId: z.string().describe('ID of the task')
+      taskId: z.string().describe('Unique task identifier (numeric string, e.g., "25368707"). Get from get_all_tasks or get_task_details. A public link will be generated if none exists.')
     },
     async ({ taskId }) => {
       try {
@@ -1237,8 +1265,9 @@ export function registerCoreTools(server) {
   // Delete public link for task
   server.tool(
     'delete_public_link',
+    'Removes the public sharing link for a task. After deletion, the previous link URL will no longer work and task details will no longer be accessible without authentication. Use this when you no longer want to share the task publicly or when project information becomes confidential. The task itself is not deleted.',
     {
-      taskId: z.string().describe('ID of the task')
+      taskId: z.string().describe('Unique task identifier (numeric string, e.g., "25368707"). Must have an existing public link. Get from get_all_tasks or after get_public_link.')
     },
     async ({ taskId }) => {
       try {
@@ -1270,10 +1299,11 @@ export function registerCoreTools(server) {
   // Create task from template
   server.tool(
     'create_task_from_template',
+    'Creates a new task based on an existing template task. The new task inherits the template\'s name, description, custom fields, subtasks, and structure. Saves time when creating repetitive tasks with standardized formats. Find templates in template projects using get_template_projects. After creation, you can modify the task with edit_task.',
     {
-      templateId: z.string().describe('ID of the template task'),
-      projectId: z.string().describe('ID of the target project'),
-      tasklistId: z.string().describe('ID of the target tasklist')
+      templateId: z.string().describe('Unique template task identifier (numeric string, e.g., "25368707"). Get template tasks from projects returned by get_template_projects.'),
+      projectId: z.string().describe('Unique identifier of target project where task will be created (numeric string, e.g., "197352"). Get from get_projects or get_all_projects.'),
+      tasklistId: z.string().describe('Unique identifier of target tasklist where task will be created (numeric string, e.g., "12345"). Get from get_project_tasklists.')
     },
     async ({ templateId, projectId, tasklistId }) => {
       try {
@@ -1308,9 +1338,10 @@ export function registerCoreTools(server) {
   // Set total time estimate for task
   server.tool(
     'set_total_time_estimate',
+    'Sets the total estimated time for completing a task in minutes. This is a PREMIUM FEATURE and may require a paid Freelo plan (returns 402 Payment Required on free plans). Estimates help with project planning, resource allocation, and deadline forecasting. Use set_user_time_estimate for per-user estimates instead. Delete with delete_total_time_estimate.',
     {
-      taskId: z.string().describe('ID of the task'),
-      minutes: z.number().describe('Total estimated minutes')
+      taskId: z.string().describe('Unique task identifier (numeric string, e.g., "25368707"). Get from get_all_tasks or get_task_details.'),
+      minutes: z.number().describe('Total estimated time in minutes (e.g., 60 for 1 hour, 480 for 8 hours, 120 for 2 hours). Must be positive number.')
     },
     async ({ taskId, minutes }) => {
       try {
@@ -1342,8 +1373,9 @@ export function registerCoreTools(server) {
   // Delete total time estimate
   server.tool(
     'delete_total_time_estimate',
+    'Removes the total time estimate from a task. This is a PREMIUM FEATURE (may return 402 Payment Required on free plans). Use this when estimates are no longer needed or were set incorrectly. The task itself is not affected. Time tracking history is preserved.',
     {
-      taskId: z.string().describe('ID of the task')
+      taskId: z.string().describe('Unique task identifier (numeric string, e.g., "25368707"). Must have an existing total time estimate. Get from get_all_tasks or get_task_details.')
     },
     async ({ taskId }) => {
       try {
@@ -1375,10 +1407,11 @@ export function registerCoreTools(server) {
   // Set user time estimate for task
   server.tool(
     'set_user_time_estimate',
+    'Sets a time estimate for a specific user on a task. This is a PREMIUM FEATURE (may return 402 Payment Required on free plans). Useful for collaborative tasks where different team members contribute different amounts of time. Each user can have their own estimate. Use set_total_time_estimate for overall task estimate instead. Delete with delete_user_time_estimate.',
     {
-      taskId: z.string().describe('ID of the task'),
-      userId: z.string().describe('ID of the user'),
-      minutes: z.number().describe('Estimated minutes for this user')
+      taskId: z.string().describe('Unique task identifier (numeric string, e.g., "25368707"). Get from get_all_tasks or get_task_details.'),
+      userId: z.string().describe('Unique user identifier (numeric string, e.g., "12345"). User should be assigned to task or project. Get from get_project_workers.'),
+      minutes: z.number().describe('Estimated time for this specific user in minutes (e.g., 120 for 2 hours, 60 for 1 hour). Must be positive number.')
     },
     async ({ taskId, userId, minutes }) => {
       try {
@@ -1410,9 +1443,10 @@ export function registerCoreTools(server) {
   // Delete user time estimate
   server.tool(
     'delete_user_time_estimate',
+    'Removes a user-specific time estimate from a task. This is a PREMIUM FEATURE (may return 402 Payment Required on free plans). Use this when a user\'s estimate is no longer needed or was set incorrectly. Other users\' estimates and the task itself are not affected.',
     {
-      taskId: z.string().describe('ID of the task'),
-      userId: z.string().describe('ID of the user')
+      taskId: z.string().describe('Unique task identifier (numeric string, e.g., "25368707"). Must have an existing user time estimate. Get from get_all_tasks or get_task_details.'),
+      userId: z.string().describe('Unique user identifier (numeric string, e.g., "12345"). Must have an existing time estimate on this task. Get from get_project_workers.')
     },
     async ({ taskId, userId }) => {
       try {
@@ -1448,16 +1482,17 @@ export function registerCoreTools(server) {
   // Get work reports
   server.tool(
     'get_work_reports',
+    'Fetches work reports with powerful filtering options. Work reports track time spent on tasks - essential for billing, productivity analysis, and project reporting. Supports filtering by projects, users, task labels, and date ranges. Use this for generating timesheets, analyzing team productivity, or preparing client invoices.',
     {
       filters: z.object({
-        projects_ids: z.array(z.string()).optional(),
-        users_ids: z.array(z.string()).optional(),
-        tasks_labels: z.array(z.string()).optional(),
+        projects_ids: z.array(z.string()).optional().describe('Filter by project IDs (numeric strings, e.g., ["197352", "198000"]). Get from get_projects or get_all_projects.'),
+        users_ids: z.array(z.string()).optional().describe('Filter by user IDs (numeric strings, e.g., ["12345", "67890"]). Get from get_users or get_project_workers.'),
+        tasks_labels: z.array(z.string()).optional().describe('Filter by task label names (e.g., ["urgent", "bug"]). Get labels from find_available_labels.'),
         date_reported_range: z.object({
-          date_from: z.string(),
-          date_to: z.string()
-        }).optional()
-      }).optional().describe('Optional filters for work reports')
+          date_from: z.string().describe('Start date in format YYYY-MM-DD (e.g., "2025-10-01")'),
+          date_to: z.string().describe('End date in format YYYY-MM-DD (e.g., "2025-10-31")')
+        }).optional().describe('Filter by date range when work was reported. Essential for monthly/weekly reports.')
+      }).optional().describe('Optional filters - combine multiple for precise queries')
     },
     async ({ filters = {} }) => {
       try {
@@ -1489,12 +1524,13 @@ export function registerCoreTools(server) {
   // Create work report
   server.tool(
     'create_work_report',
+    'Creates a new work report (time entry) for a specific task. Work reports track time spent on tasks for billing, productivity analysis, and project reporting. Use this after completing work on a task or at end of day for timesheet entry. For real-time tracking, use start_time_tracking instead.',
     {
-      taskId: z.string().describe('ID of the task'),
+      taskId: z.string().describe('Unique task identifier (numeric string, e.g., "12345"). Get from get_all_tasks, get_tasklist_tasks, or get_task_details.'),
       reportData: z.object({
-        minutes: z.number().describe('Number of minutes worked'),
-        date: z.string().describe('Date of work in format YYYY-MM-DD'),
-        description: z.string().optional().describe('Optional description of work done')
+        minutes: z.number().describe('Number of minutes worked (e.g., 120 for 2 hours, 30 for half hour). Will be converted to hours in reports.'),
+        date: z.string().describe('Date of work in format YYYY-MM-DD (e.g., "2025-10-11"). Usually today\'s date or past date for retroactive entries.'),
+        description: z.string().optional().describe('Optional: Description of work performed (e.g., "Fixed login bug", "Client meeting notes"). Useful for detailed billing and reporting.')
       }).describe('Work report data')
     },
     async ({ taskId, reportData }) => {
@@ -1527,13 +1563,14 @@ export function registerCoreTools(server) {
   // Update work report
   server.tool(
     'update_work_report',
+    'Updates an existing work report. Use this to correct time entries, update descriptions, or change the date of logged work. Useful for fixing mistakes in timesheets or adding details to previously logged work. Get work report IDs from get_work_reports.',
     {
-      workReportId: z.string().describe('ID of the work report'),
+      workReportId: z.string().describe('Unique work report identifier (numeric string, e.g., "12345"). Get from get_work_reports response.'),
       reportData: z.object({
-        minutes: z.number().optional(),
-        date: z.string().optional(),
-        description: z.string().optional()
-      }).describe('Updated work report data')
+        minutes: z.number().optional().describe('Optional: Updated number of minutes worked (e.g., 120 for 2 hours)'),
+        date: z.string().optional().describe('Optional: Updated date in format YYYY-MM-DD (e.g., "2025-10-11")'),
+        description: z.string().optional().describe('Optional: Updated description of work performed')
+      }).describe('Updated work report data - all fields optional, only provide what needs to change')
     },
     async ({ workReportId, reportData }) => {
       try {
@@ -1565,8 +1602,9 @@ export function registerCoreTools(server) {
   // Delete work report
   server.tool(
     'delete_work_report',
+    'Permanently deletes a work report (time entry). WARNING: This action is irreversible! Use this to remove incorrect time entries or duplicate reports. Consider using update_work_report to fix mistakes instead of deleting. Get work report IDs from get_work_reports.',
     {
-      workReportId: z.string().describe('ID of the work report to delete')
+      workReportId: z.string().describe('Unique work report identifier to permanently delete (numeric string, e.g., "12345"). WARNING: This is irreversible! Get from get_work_reports response.')
     },
     async ({ workReportId }) => {
       try {
@@ -1602,8 +1640,9 @@ export function registerCoreTools(server) {
   // Start time tracking
   server.tool(
     'start_time_tracking',
+    'Starts real-time time tracking for a task or general work. Creates an active timer that runs until stopped with stop_time_tracking. Use this for live time tracking during work - when stopped, it automatically creates a work report. For manual time entry after work is done, use create_work_report instead.',
     {
-      taskId: z.string().optional().describe('Optional task ID to track time for')
+      taskId: z.string().optional().describe('Optional: Task ID to track time for (numeric string, e.g., "12345"). If not provided, tracks general work time. Get from get_all_tasks or get_tasklist_tasks.')
     },
     async ({ taskId }) => {
       try {
@@ -1636,6 +1675,7 @@ export function registerCoreTools(server) {
   // Stop time tracking
   server.tool(
     'stop_time_tracking',
+    'Stops the currently active time tracking session. Calculates elapsed time since start_time_tracking was called and automatically creates a work report with the tracked time. Use this when finishing work on a task. If no timer is running, this will return an error.',
     {},
     async () => {
       try {
@@ -1667,11 +1707,12 @@ export function registerCoreTools(server) {
   // Edit time tracking
   server.tool(
     'edit_time_tracking',
+    'Edits the currently active time tracking session. Use this to change which task is being tracked or add/update the description while the timer is still running. Useful when you realize you started tracking the wrong task or want to add notes. Only works with an active timer.',
     {
       trackingData: z.object({
-        task_id: z.string().optional(),
-        description: z.string().optional()
-      }).describe('Data to edit in current time tracking')
+        task_id: z.string().optional().describe('Optional: New task ID to track time for (numeric string, e.g., "12345"). Use to switch task while timer runs.'),
+        description: z.string().optional().describe('Optional: Description to add to the time tracking session (e.g., "Working on feature X"). Will appear in work report when stopped.')
+      }).describe('Data to edit in current time tracking - all fields optional')
     },
     async ({ trackingData }) => {
       try {
@@ -1707,6 +1748,7 @@ export function registerCoreTools(server) {
   // Get custom field types
   server.tool(
     'get_custom_field_types',
+    'Fetches all available custom field types in Freelo. Custom fields allow you to extend tasks with additional metadata like priority levels, client names, budget amounts, or any project-specific data. PREMIUM FEATURE: Requires paid Freelo plan. Use this before create_custom_field to see available field types (text, number, date, select, etc.).',
     {},
     async () => {
       try {
@@ -1738,12 +1780,13 @@ export function registerCoreTools(server) {
   // Create custom field
   server.tool(
     'create_custom_field',
+    'Creates a new custom field for a project. Custom fields extend tasks with project-specific metadata (e.g., "Client Name", "Priority Level", "Budget"). PREMIUM FEATURE: Requires paid Freelo plan. After creation, use add_or_edit_field_value to set values on tasks. Get field types from get_custom_field_types first.',
     {
-      projectId: z.string().describe('ID of the project'),
+      projectId: z.string().describe('Unique project identifier (numeric string, e.g., "197352"). Get from get_projects or get_all_projects.'),
       fieldData: z.object({
-        name: z.string().describe('Name of the custom field'),
-        type: z.string().describe('Type of the custom field'),
-        is_required: z.enum(['yes', 'no']).optional().describe('Whether field is required (yes/no)')
+        name: z.string().describe('Name of the custom field (e.g., "Client Name", "Priority Level", "Budget Amount")'),
+        type: z.string().describe('Type of the custom field (e.g., "text", "number", "date", "select"). Get available types from get_custom_field_types.'),
+        is_required: z.enum(['yes', 'no']).optional().describe('Whether field is required when creating/editing tasks: "yes" or "no" (default). Required fields must be filled in.')
       }).describe('Custom field data')
     },
     async ({ projectId, fieldData }) => {
@@ -1776,9 +1819,10 @@ export function registerCoreTools(server) {
   // Rename custom field
   server.tool(
     'rename_custom_field',
+    'Renames an existing custom field. Use this to update the display name of a custom field across the entire project. All existing values are preserved, only the field label changes. PREMIUM FEATURE: Requires paid Freelo plan. Get custom field UUIDs from get_custom_fields_by_project.',
     {
-      uuid: z.string().describe('UUID of the custom field'),
-      name: z.string().describe('New name for the custom field')
+      uuid: z.string().describe('UUID of the custom field to rename (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890"). Get from get_custom_fields_by_project response.'),
+      name: z.string().describe('New name for the custom field (e.g., "Updated Priority Level", "New Client Field")')
     },
     async ({ uuid, name }) => {
       try {
@@ -1810,8 +1854,9 @@ export function registerCoreTools(server) {
   // Delete custom field
   server.tool(
     'delete_custom_field',
+    'Deletes a custom field from a project. The field will be removed from all tasks and hidden from views. This is reversible - use restore_custom_field to un-delete. PREMIUM FEATURE: Requires paid Freelo plan. Get custom field UUIDs from get_custom_fields_by_project. Consider renaming instead if you might need it later.',
     {
-      uuid: z.string().describe('UUID of the custom field to delete')
+      uuid: z.string().describe('UUID of the custom field to delete (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890"). Get from get_custom_fields_by_project response.')
     },
     async ({ uuid }) => {
       try {
@@ -1843,8 +1888,9 @@ export function registerCoreTools(server) {
   // Restore custom field
   server.tool(
     'restore_custom_field',
+    'Restores a previously deleted custom field. The field will become visible again with all its values preserved. Use this to un-delete custom fields that were removed with delete_custom_field. PREMIUM FEATURE: Requires paid Freelo plan. Get deleted field UUIDs from get_custom_fields_by_project.',
     {
-      uuid: z.string().describe('UUID of the custom field to restore')
+      uuid: z.string().describe('UUID of the deleted custom field to restore (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890"). Get from get_custom_fields_by_project response (includes deleted fields).')
     },
     async ({ uuid }) => {
       try {
@@ -1876,11 +1922,12 @@ export function registerCoreTools(server) {
   // Add or edit field value
   server.tool(
     'add_or_edit_field_value',
+    'Sets or updates a custom field value on a task. Use this to add metadata like client names, budgets, or priorities to tasks. For enum/select fields, use add_or_edit_enum_value instead. PREMIUM FEATURE: Requires paid Freelo plan. Works with text, number, date, and other non-enum field types.',
     {
       valueData: z.object({
-        task_id: z.string().describe('ID of the task'),
-        custom_field_uuid: z.string().describe('UUID of the custom field'),
-        value: z.union([z.string(), z.number(), z.boolean()]).describe('Value to set')
+        task_id: z.string().describe('Unique task identifier (numeric string, e.g., "12345"). Get from get_all_tasks, get_tasklist_tasks, or get_task_details.'),
+        custom_field_uuid: z.string().describe('UUID of the custom field (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890"). Get from get_custom_fields_by_project.'),
+        value: z.union([z.string(), z.number(), z.boolean()]).describe('Value to set. Type depends on field: string for text, number for numeric, boolean for checkbox, "YYYY-MM-DD" for date.')
       }).describe('Field value data')
     },
     async ({ valueData }) => {
@@ -1913,11 +1960,12 @@ export function registerCoreTools(server) {
   // Add or edit enum value
   server.tool(
     'add_or_edit_enum_value',
+    'Sets or updates an enum/select custom field value on a task. Use this for dropdown/select custom fields (e.g., "Priority: High/Medium/Low", "Status: Approved/Pending/Rejected"). For other field types, use add_or_edit_field_value instead. PREMIUM FEATURE: Requires paid Freelo plan. Get enum options from get_enum_options.',
     {
       valueData: z.object({
-        task_id: z.string().describe('ID of the task'),
-        custom_field_uuid: z.string().describe('UUID of the custom field'),
-        enum_option_uuid: z.string().describe('UUID of the enum option')
+        task_id: z.string().describe('Unique task identifier (numeric string, e.g., "12345"). Get from get_all_tasks or get_tasklist_tasks.'),
+        custom_field_uuid: z.string().describe('UUID of the enum custom field (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890"). Get from get_custom_fields_by_project.'),
+        enum_option_uuid: z.string().describe('UUID of the enum option to select (e.g., "b2c3d4e5-f6a7-8901-bcde-f12345678901"). Get from get_enum_options.')
       }).describe('Enum value data')
     },
     async ({ valueData }) => {
@@ -1950,8 +1998,9 @@ export function registerCoreTools(server) {
   // Delete field value
   server.tool(
     'delete_field_value',
+    'Deletes a custom field value from a task. Use this to clear/remove custom field data from a task. The custom field definition remains, only this specific task\'s value is removed. PREMIUM FEATURE: Requires paid Freelo plan. Get value UUIDs from task details or get_custom_fields_by_project response.',
     {
-      uuid: z.string().describe('UUID of the field value to delete')
+      uuid: z.string().describe('UUID of the field value to delete (e.g., "c3d4e5f6-a7b8-9012-cdef-123456789012"). Get from task details in get_task_details response or get_custom_fields_by_project.')
     },
     async ({ uuid }) => {
       try {
@@ -1983,8 +2032,9 @@ export function registerCoreTools(server) {
   // Get custom fields by project
   server.tool(
     'get_custom_fields_by_project',
+    'Fetches all custom fields defined in a specific project, including their UUIDs, types, and configurations. Essential for understanding which custom fields are available before setting values on tasks. PREMIUM FEATURE: Requires paid Freelo plan. Returns both active and deleted fields.',
     {
-      projectId: z.string().describe('ID of the project')
+      projectId: z.string().describe('Unique project identifier (numeric string, e.g., "197352"). Get from get_projects, get_all_projects, or get_project_details.')
     },
     async ({ projectId }) => {
       try {
@@ -2016,8 +2066,9 @@ export function registerCoreTools(server) {
   // Get enum options
   server.tool(
     'get_enum_options',
+    'Fetches all available options for an enum/select custom field. Use this to see what values can be selected before using add_or_edit_enum_value. Returns option UUIDs, names, and colors. PREMIUM FEATURE: Requires paid Freelo plan. Only works with enum/select type fields.',
     {
-      customFieldUuid: z.string().describe('UUID of the custom field')
+      customFieldUuid: z.string().describe('UUID of the enum custom field (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890"). Get from get_custom_fields_by_project for enum-type fields.')
     },
     async ({ customFieldUuid }) => {
       try {
@@ -2049,11 +2100,12 @@ export function registerCoreTools(server) {
   // Create enum option
   server.tool(
     'create_enum_option',
+    'Creates a new option for an enum/select custom field. Use this to add new values to dropdown fields (e.g., add "Critical" to a "Priority" field). After creation, use add_or_edit_enum_value to assign this option to tasks. PREMIUM FEATURE: Requires paid Freelo plan. Only works with enum/select type fields.',
     {
-      customFieldUuid: z.string().describe('UUID of the custom field'),
+      customFieldUuid: z.string().describe('UUID of the enum custom field (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890"). Get from get_custom_fields_by_project for enum-type fields.'),
       optionData: z.object({
-        name: z.string().describe('Name of the enum option'),
-        color: z.string().optional().describe('Color of the enum option')
+        name: z.string().describe('Name of the new option (e.g., "High Priority", "Approved", "Phase 2"). Will appear in dropdown.'),
+        color: z.string().optional().describe('Optional: Color for the option in hex format (e.g., "#FF0000" for red, "#00FF00" for green). Used for visual distinction.')
       }).describe('Enum option data')
     },
     async ({ customFieldUuid, optionData }) => {
@@ -2090,11 +2142,12 @@ export function registerCoreTools(server) {
   // Get issued invoices
   server.tool(
     'get_issued_invoices',
+    'Fetches issued invoices with filtering options. Use this to retrieve client invoices for accounting, billing reports, or financial analysis. Supports filtering by project and date range. Essential for tracking billable work and generating financial reports.',
     {
       filters: z.object({
-        project_id: z.string().optional(),
-        date_from: z.string().optional(),
-        date_to: z.string().optional()
+        project_id: z.string().optional().describe('Filter by project ID (numeric string, e.g., "197352"). Get from get_projects or get_all_projects.'),
+        date_from: z.string().optional().describe('Filter invoices from this date in format YYYY-MM-DD (e.g., "2025-10-01")'),
+        date_to: z.string().optional().describe('Filter invoices to this date in format YYYY-MM-DD (e.g., "2025-10-31")')
       }).optional().describe('Optional filters for invoices')
     },
     async ({ filters = {} }) => {
@@ -2127,8 +2180,9 @@ export function registerCoreTools(server) {
   // Get invoice detail
   server.tool(
     'get_invoice_detail',
+    'Fetches detailed information about a specific invoice, including line items, work reports, amounts, and status. Use this to review invoice details before sending to clients or for detailed accounting records. Get invoice IDs from get_issued_invoices.',
     {
-      invoiceId: z.string().describe('ID of the invoice')
+      invoiceId: z.string().describe('Unique invoice identifier (numeric string, e.g., "12345"). Get from get_issued_invoices response.')
     },
     async ({ invoiceId }) => {
       try {
@@ -2160,8 +2214,9 @@ export function registerCoreTools(server) {
   // Download invoice reports
   server.tool(
     'download_invoice_reports',
+    'Downloads work reports and time tracking data associated with an invoice. Use this to get detailed breakdown of billable work for client transparency or internal auditing. Returns work report data that was included in the invoice calculation.',
     {
-      invoiceId: z.string().describe('ID of the invoice')
+      invoiceId: z.string().describe('Unique invoice identifier (numeric string, e.g., "12345"). Get from get_issued_invoices or get_invoice_detail.')
     },
     async ({ invoiceId }) => {
       try {
@@ -2193,8 +2248,9 @@ export function registerCoreTools(server) {
   // Mark as invoiced
   server.tool(
     'mark_as_invoiced',
+    'Marks an invoice as invoiced (sent to client). Use this to track invoice status and indicate that the invoice has been delivered to the client. Important for invoice lifecycle management and accounting workflows. Get invoice IDs from get_issued_invoices.',
     {
-      invoiceId: z.string().describe('ID of the invoice')
+      invoiceId: z.string().describe('Unique invoice identifier to mark as invoiced (numeric string, e.g., "12345"). Get from get_issued_invoices response.')
     },
     async ({ invoiceId }) => {
       try {
@@ -2230,10 +2286,11 @@ export function registerCoreTools(server) {
   // Get all notifications
   server.tool(
     'get_all_notifications',
+    'Fetches all notifications for the current user. Notifications include mentions, task assignments, comments, and other activity updates. Supports pagination for large notification lists. Use this to build notification feeds or check for unread updates.',
     {
       filters: z.object({
-        page: z.number().optional(),
-        limit: z.number().optional()
+        page: z.number().optional().describe('Page number for pagination, starts at 1 (default: 1). Use for loading more notifications.'),
+        limit: z.number().optional().describe('Number of notifications per page (e.g., 20, 50). Use to control response size.')
       }).optional().describe('Optional pagination filters')
     },
     async ({ filters = {} }) => {
@@ -2266,8 +2323,9 @@ export function registerCoreTools(server) {
   // Mark notification as read
   server.tool(
     'mark_notification_read',
+    'Marks a specific notification as read. Use this to track which notifications have been seen and reduce unread notification counts. Essential for notification management workflows. Get notification IDs from get_all_notifications.',
     {
-      notificationId: z.string().describe('ID of the notification')
+      notificationId: z.string().describe('Unique notification identifier (numeric string, e.g., "12345"). Get from get_all_notifications response.')
     },
     async ({ notificationId }) => {
       try {
@@ -2299,8 +2357,9 @@ export function registerCoreTools(server) {
   // Mark notification as unread
   server.tool(
     'mark_notification_unread',
+    'Marks a specific notification as unread. Use this to flag notifications that require follow-up action or to restore notifications that were accidentally marked as read. Get notification IDs from get_all_notifications.',
     {
-      notificationId: z.string().describe('ID of the notification')
+      notificationId: z.string().describe('Unique notification identifier (numeric string, e.g., "12345"). Get from get_all_notifications response.')
     },
     async ({ notificationId }) => {
       try {
@@ -2336,11 +2395,12 @@ export function registerCoreTools(server) {
   // Create note
   server.tool(
     'create_note',
+    'Creates a new note in a project. Notes are standalone documents for project documentation, meeting minutes, specifications, or any reference material. Unlike task comments, notes are top-level project items. Use this for knowledge base, documentation, or project wikis.',
     {
-      projectId: z.string().describe('ID of the project'),
+      projectId: z.string().describe('Unique project identifier (numeric string, e.g., "197352"). Get from get_projects or get_all_projects.'),
       noteData: z.object({
-        name: z.string().describe('Title of the note'),
-        content: z.string().describe('Content of the note')
+        name: z.string().describe('Title of the note (e.g., "Meeting Minutes 2025-10-11", "API Documentation", "Project Spec")'),
+        content: z.string().describe('Content of the note in plain text or markdown. Can include detailed documentation, meeting notes, specifications, etc.')
       }).describe('Note data')
     },
     async ({ projectId, noteData }) => {
@@ -2373,8 +2433,9 @@ export function registerCoreTools(server) {
   // Get note
   server.tool(
     'get_note',
+    'Fetches a specific note by ID, including its title, content, and metadata. Use this to read project documentation, meeting minutes, or reference materials. Get note IDs from project details or search results.',
     {
-      noteId: z.string().describe('ID of the note')
+      noteId: z.string().describe('Unique note identifier (numeric string, e.g., "12345"). Get from create_note response or project details.')
     },
     async ({ noteId }) => {
       try {
@@ -2406,12 +2467,13 @@ export function registerCoreTools(server) {
   // Update note
   server.tool(
     'update_note',
+    'Updates an existing note\'s title or content. Use this to maintain documentation, update meeting minutes, or revise project specifications. All fields are optional - only provide what needs to change. Get note IDs from get_note or project details.',
     {
-      noteId: z.string().describe('ID of the note'),
+      noteId: z.string().describe('Unique note identifier (numeric string, e.g., "12345"). Get from create_note, get_note, or project details.'),
       noteData: z.object({
-        name: z.string().optional().describe('Title of the note'),
-        content: z.string().optional().describe('Content of the note')
-      }).describe('Updated note data')
+        name: z.string().optional().describe('Optional: Updated title of the note'),
+        content: z.string().optional().describe('Optional: Updated content of the note in plain text or markdown')
+      }).describe('Updated note data - all fields optional, only provide what needs to change')
     },
     async ({ noteId, noteData }) => {
       try {
@@ -2443,8 +2505,9 @@ export function registerCoreTools(server) {
   // Delete note
   server.tool(
     'delete_note',
+    'Permanently deletes a note from a project. WARNING: This action is irreversible! All note content will be permanently lost. Consider updating the note to archive it instead. Use this only when you are certain the note should be removed.',
     {
-      noteId: z.string().describe('ID of the note to delete')
+      noteId: z.string().describe('Unique note identifier to permanently delete (numeric string, e.g., "12345"). WARNING: This is irreversible! Get from create_note, get_note, or project details.')
     },
     async ({ noteId }) => {
       try {
@@ -2480,6 +2543,7 @@ export function registerCoreTools(server) {
   // Get projects where user is project manager
   server.tool(
     'get_project_manager_of',
+    'Fetches projects where the current authenticated user is assigned as the project manager (PM). Project managers typically have elevated permissions and responsibilities for project oversight. This differs from get_projects which returns projects you own - you can be PM on projects owned by others. Useful for understanding your management responsibilities.',
     {},
     async () => {
       try {
@@ -2511,9 +2575,10 @@ export function registerCoreTools(server) {
   // Invite users by email
   server.tool(
     'invite_users_by_email',
+    'Invites users to a project by their email addresses. If users don\'t have Freelo accounts, they will receive invitation emails. If they already exist, they will be added to the project immediately. This is convenient when you don\'t know user IDs. For inviting existing users by ID, use invite_users_by_ids. Essential for building project teams.',
     {
-      projectId: z.string().describe('ID of the project'),
-      emails: z.array(z.string()).describe('Array of email addresses to invite')
+      projectId: z.string().describe('Unique project identifier (numeric string, e.g., "197352"). Get from get_projects or get_all_projects.'),
+      emails: z.array(z.string()).describe('Array of email addresses to invite (e.g., ["user@example.com", "colleague@company.com"]). Users will receive invitations if not registered yet.')
     },
     async ({ projectId, emails }) => {
       try {
@@ -2548,9 +2613,10 @@ export function registerCoreTools(server) {
   // Invite users by IDs
   server.tool(
     'invite_users_by_ids',
+    'Invites existing Freelo users to a project using their user IDs. Users must already have Freelo accounts. This is faster and more precise than email invitations when you know the user IDs. Get user IDs from get_users first. For inviting by email (including new users), use invite_users_by_email instead.',
     {
-      projectId: z.string().describe('ID of the project'),
-      userIds: z.array(z.string()).describe('Array of user IDs to invite')
+      projectId: z.string().describe('Unique project identifier (numeric string, e.g., "197352"). Get from get_projects or get_all_projects.'),
+      userIds: z.array(z.string()).describe('Array of user IDs to invite (e.g., ["12345", "67890"]). Users must already exist in Freelo. Get IDs from get_users.')
     },
     async ({ projectId, userIds }) => {
       try {
@@ -2585,8 +2651,9 @@ export function registerCoreTools(server) {
   // Get out of office
   server.tool(
     'get_out_of_office',
+    'Fetches out-of-office (vacation/absence) information for a user. Returns dates and reason if set. Useful for checking team member availability before assigning tasks or scheduling work. Helps with resource planning and deadline setting.',
     {
-      userId: z.string().describe('ID of the user')
+      userId: z.string().describe('Unique user identifier (numeric string, e.g., "12345"). Get from get_users or get_project_workers.')
     },
     async ({ userId }) => {
       try {
@@ -2618,13 +2685,14 @@ export function registerCoreTools(server) {
   // Set out of office
   server.tool(
     'set_out_of_office',
+    'Sets out-of-office (vacation/absence) period for a user. Other team members will see when the user is unavailable. Helps with workload distribution and prevents assigning work during absences. Can include optional reason (vacation, sick leave, etc.). Delete with delete_out_of_office to cancel.',
     {
-      userId: z.string().describe('ID of the user'),
+      userId: z.string().describe('Unique user identifier (numeric string, e.g., "12345"). Typically the current user. Get from get_users.'),
       outOfOfficeData: z.object({
-        date_from: z.string().describe('Start date (YYYY-MM-DD)'),
-        date_to: z.string().describe('End date (YYYY-MM-DD)'),
-        reason: z.string().optional().describe('Optional reason')
-      }).describe('Out of office data')
+        date_from: z.string().describe('Absence start date in format YYYY-MM-DD (e.g., "2025-10-15")'),
+        date_to: z.string().describe('Absence end date in format YYYY-MM-DD (e.g., "2025-10-20"). Must be after date_from.'),
+        reason: z.string().optional().describe('Optional: Absence reason (e.g., "Vacation", "Sick leave", "Conference"). Visible to team members.')
+      }).describe('Out-of-office configuration data')
     },
     async ({ userId, outOfOfficeData }) => {
       try {
@@ -2659,8 +2727,9 @@ export function registerCoreTools(server) {
   // Delete out of office
   server.tool(
     'delete_out_of_office',
+    'Removes out-of-office status for a user. Use this when plans change and the user becomes available earlier than expected, or to cancel mistakenly set absences. The user will appear as available immediately.',
     {
-      userId: z.string().describe('ID of the user')
+      userId: z.string().describe('Unique user identifier (numeric string, e.g., "12345"). Must have existing out-of-office status. Get from get_users.')
     },
     async ({ userId }) => {
       try {
@@ -2696,19 +2765,20 @@ export function registerCoreTools(server) {
   // Get events
   server.tool(
     'get_events',
+    'Fetches activity events (audit log) with powerful filtering options. Events track all changes in Freelo: task updates, comments, status changes, assignments, file uploads, etc. Essential for activity tracking, auditing, generating reports, or building activity feeds. Supports filtering by projects, users, event types, tasks, and date ranges with pagination.',
     {
       filters: z.object({
-        projects_ids: z.array(z.number()).optional().describe('Projects IDs array'),
-        users_ids: z.array(z.number()).optional().describe('Users IDs array'),
-        events_types: z.array(z.string()).optional().describe('Event types array'),
-        order: z.enum(['asc', 'desc']).optional().describe('Data order (desc or asc)'),
+        projects_ids: z.array(z.number()).optional().describe('Filter by project IDs (numeric array, e.g., [197352, 198000]). Get from get_projects or get_all_projects.'),
+        users_ids: z.array(z.number()).optional().describe('Filter by user IDs who performed actions (numeric array, e.g., [12345, 67890]). Get from get_users.'),
+        events_types: z.array(z.string()).optional().describe('Filter by event types (e.g., ["task_created", "task_finished", "comment_added"]). Common types: task_created, task_finished, task_assigned, comment_added, file_uploaded.'),
+        order: z.enum(['asc', 'desc']).optional().describe('Sort order: "desc" (newest first, default) or "asc" (oldest first)'),
         date_range: z.object({
-          date_from: z.string().describe('Date from'),
-          date_to: z.string().describe('Date to')
-        }).optional().describe('Date range'),
-        tasks_ids: z.array(z.number()).optional().describe('Tasks IDs array'),
-        p: z.number().optional().describe('Page number (starts from 0)')
-      }).optional().describe('Optional filters for events')
+          date_from: z.string().describe('Start date in format YYYY-MM-DD or YYYY-MM-DD HH:MM:SS (e.g., "2025-10-01")'),
+          date_to: z.string().describe('End date in format YYYY-MM-DD or YYYY-MM-DD HH:MM:SS (e.g., "2025-10-31")')
+        }).optional().describe('Filter events within date range. Essential for period reports and historical analysis.'),
+        tasks_ids: z.array(z.number()).optional().describe('Filter by task IDs (numeric array, e.g., [12345, 67890]). Use to see all activity for specific tasks.'),
+        p: z.number().optional().describe('Page number for pagination, starts at 0 (default: 0). Critical for large event sets to avoid token limits.')
+      }).optional().describe('Optional filters - combine multiple for precise queries')
     },
     async ({ filters = {} }) => {
       try {
@@ -2740,8 +2810,9 @@ export function registerCoreTools(server) {
   // Get tasklist details
   server.tool(
     'get_tasklist_details',
+    'Fetches detailed information about a specific tasklist including name, description, color, workers, and settings. Use this after get_project_tasklists to understand tasklist configuration before creating tasks or managing workers. Essential for understanding tasklist structure and permissions.',
     {
-      tasklistId: z.string().describe('ID of the tasklist')
+      tasklistId: z.string().describe('Unique tasklist identifier (numeric string, e.g., "12345"). Get from get_project_tasklists or get_all_projects.')
     },
     async ({ tasklistId }) => {
       try {
@@ -2773,9 +2844,10 @@ export function registerCoreTools(server) {
   // Get assignable workers
   server.tool(
     'get_assignable_workers',
+    'Fetches the list of users who can be assigned to tasks in a specific tasklist. This considers project permissions and tasklist worker restrictions. Use this before creating or assigning tasks to ensure the assignee has access. Returns user details including names, IDs, and availability.',
     {
-      projectId: z.string().describe('ID of the project'),
-      tasklistId: z.string().describe('ID of the tasklist')
+      projectId: z.string().describe('Unique project identifier (numeric string, e.g., "197352"). Get from get_projects or get_all_projects.'),
+      tasklistId: z.string().describe('Unique tasklist identifier (numeric string, e.g., "12345"). Get from get_project_tasklists.')
     },
     async ({ projectId, tasklistId }) => {
       try {
@@ -2807,9 +2879,10 @@ export function registerCoreTools(server) {
   // Create tasklist from template
   server.tool(
     'create_tasklist_from_template',
+    'Creates a new tasklist based on an existing template tasklist. The new tasklist inherits the template\'s structure, tasks, and settings. Much faster than creating tasklists manually when you have standardized workflows. Find template tasklists in template projects using get_template_projects.',
     {
-      templateId: z.string().describe('ID of the template tasklist'),
-      projectId: z.string().describe('ID of the target project')
+      templateId: z.string().describe('Unique template tasklist identifier (numeric string, e.g., "12345"). Get from tasklists in template projects returned by get_template_projects.'),
+      projectId: z.string().describe('Unique identifier of target project where tasklist will be created (numeric string, e.g., "197352"). Get from get_projects or get_all_projects.')
     },
     async ({ templateId, projectId }) => {
       try {
@@ -2845,6 +2918,7 @@ export function registerCoreTools(server) {
   // Get custom filters
   server.tool(
     'get_custom_filters',
+    'Fetches all custom filters (saved task views) created by the user. Custom filters are saved search configurations that combine multiple criteria for quick access to specific task sets. Use this to get filter UUIDs before using get_tasks_by_filter_uuid or get_tasks_by_filter_name.',
     {},
     async () => {
       try {
@@ -2876,8 +2950,9 @@ export function registerCoreTools(server) {
   // Get tasks by filter UUID
   server.tool(
     'get_tasks_by_filter_uuid',
+    'Fetches tasks using a custom filter UUID. Custom filters are pre-configured task searches with multiple criteria. Use this to quickly retrieve task sets matching saved filter configurations. Get filter UUIDs from get_custom_filters.',
     {
-      uuid: z.string().describe('UUID of the custom filter')
+      uuid: z.string().describe('UUID of the custom filter (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890"). Get from get_custom_filters response.')
     },
     async ({ uuid }) => {
       try {
@@ -2909,8 +2984,9 @@ export function registerCoreTools(server) {
   // Get tasks by filter name
   server.tool(
     'get_tasks_by_filter_name',
+    'Fetches tasks using a custom filter name. Alternative to get_tasks_by_filter_uuid when you know the filter name but not the UUID. Custom filters are pre-configured task searches. Get filter names from get_custom_filters.',
     {
-      name: z.string().describe('Name of the custom filter')
+      name: z.string().describe('Name of the custom filter (e.g., "My High Priority Tasks", "Overdue Items"). Get from get_custom_filters response.')
     },
     async ({ name }) => {
       try {
@@ -2942,8 +3018,9 @@ export function registerCoreTools(server) {
   // Find available labels
   server.tool(
     'find_available_labels',
+    'Fetches all available task labels (tags) in Freelo, optionally filtered by project. Labels are used to categorize and filter tasks (e.g., "urgent", "bug", "feature", "design"). Essential before using get_all_tasks with label filters or when applying labels to tasks. Returns label names, colors, and usage counts.',
     {
-      projectId: z.string().optional().describe('Optional project ID to filter labels')
+      projectId: z.string().optional().describe('Optional: Project ID to get project-specific labels (numeric string, e.g., "197352"). If omitted, returns all labels across all projects. Get from get_projects.')
     },
     async ({ projectId }) => {
       try {
@@ -2976,8 +3053,9 @@ export function registerCoreTools(server) {
   // Get pinned items
   server.tool(
     'get_pinned_items',
+    'Fetches all pinned items in a project. Pinned items are shortcuts to important tasks, notes, or files displayed prominently for quick access. Use this to see what team members have pinned as important or frequently accessed. Essential for understanding project priorities.',
     {
-      projectId: z.string().describe('ID of the project')
+      projectId: z.string().describe('Unique project identifier (numeric string, e.g., "197352"). Get from get_projects or get_all_projects.')
     },
     async ({ projectId }) => {
       try {
@@ -3009,12 +3087,13 @@ export function registerCoreTools(server) {
   // Pin item
   server.tool(
     'pin_item',
+    'Pins a task, note, or file to the top of a project for quick access. Pinned items appear prominently for all project members. Use this to highlight important tasks, reference documentation, or frequently needed files. Useful for team coordination and prioritization.',
     {
-      projectId: z.string().describe('ID of the project'),
+      projectId: z.string().describe('Unique project identifier (numeric string, e.g., "197352"). Get from get_projects or get_all_projects.'),
       itemData: z.object({
-        type: z.enum(['task', 'note', 'file']).describe('Type of item to pin'),
-        item_id: z.string().describe('ID of the item to pin'),
-        link: z.string().optional().describe('Optional link URL for the pinned item')
+        type: z.enum(['task', 'note', 'file']).describe('Type of item to pin: "task" (pin a task), "note" (pin documentation), or "file" (pin an attachment)'),
+        item_id: z.string().describe('ID of the item to pin (numeric string, e.g., "12345"). Get from get_all_tasks, get_note, or get_all_files depending on type.'),
+        link: z.string().optional().describe('Optional: Custom link URL for the pinned item (e.g., external documentation URL)')
       }).describe('Item data to pin')
     },
     async ({ projectId, itemData }) => {
@@ -3052,8 +3131,9 @@ export function registerCoreTools(server) {
   // Delete pinned item
   server.tool(
     'delete_pinned_item',
+    'Removes a pinned item from a project. Use this to unpin tasks, notes, or files that are no longer priority or frequently accessed. Does not delete the underlying item (task/note/file), only removes the pin. Get pinned item IDs from get_pinned_items.',
     {
-      pinnedItemId: z.string().describe('ID of the pinned item to delete')
+      pinnedItemId: z.string().describe('Unique pinned item identifier (numeric string, e.g., "12345"). Get from get_pinned_items response.')
     },
     async ({ pinnedItemId }) => {
       try {
@@ -3085,13 +3165,14 @@ export function registerCoreTools(server) {
   // Get all comments
   server.tool(
     'get_all_comments',
+    'Fetches all comments across projects with filtering and sorting options. Comments include discussions on tasks, documents, files, and links. Essential for tracking communication, finding specific conversations, or generating activity reports. Supports filtering by project, comment type, and pagination.',
     {
       filters: z.object({
-        projects_ids: z.array(z.number()).optional().describe('Projects IDs array'),
-        type: z.enum(['all', 'task', 'document', 'file', 'link']).optional().describe('Comment type'),
-        order_by: z.enum(['date_add', 'date_edited_at']).optional().describe('Order column'),
-        order: z.enum(['asc', 'desc']).optional().describe('Order direction'),
-        p: z.number().optional().describe('Page number (starts from 0)')
+        projects_ids: z.array(z.number()).optional().describe('Filter by project IDs (numeric array, e.g., [197352, 198000]). Get from get_projects or get_all_projects.'),
+        type: z.enum(['all', 'task', 'document', 'file', 'link']).optional().describe('Filter by comment context: "all" (default, all comments), "task" (task comments), "document" (note comments), "file" (file comments), "link" (link comments)'),
+        order_by: z.enum(['date_add', 'date_edited_at']).optional().describe('Sort by: "date_add" (creation date, default), "date_edited_at" (last edited date)'),
+        order: z.enum(['asc', 'desc']).optional().describe('Sort direction: "asc" (oldest first) or "desc" (newest first, default)'),
+        p: z.number().optional().describe('Page number for pagination, starts at 0 (default: 0). Critical for large comment sets to avoid token limits.')
       }).optional().describe('Optional filters for comments')
     },
     async ({ filters = {} }) => {
@@ -3124,11 +3205,12 @@ export function registerCoreTools(server) {
   // Create task labels
   server.tool(
     'create_task_labels',
+    'Creates a new task label (tag) for categorizing tasks. Labels help organize and filter tasks across projects (e.g., "urgent", "bug", "feature", "design"). After creation, labels can be applied to tasks via edit_task or filtered with get_all_tasks. Use find_available_labels to see existing labels first.',
     {
       labelData: z.object({
-        name: z.string().describe('Name of the label'),
-        color: z.string().optional().describe('Color of the label'),
-        project_id: z.string().optional().describe('Optional project ID')
+        name: z.string().describe('Name of the label (e.g., "urgent", "bug", "feature", "design"). Should be short and descriptive for easy filtering.'),
+        color: z.string().optional().describe('Optional: Color for the label in hex format (e.g., "#FF0000" for red, "#00FF00" for green). Used for visual distinction in UI.'),
+        project_id: z.string().optional().describe('Optional: Project ID to associate label with specific project (numeric string, e.g., "197352"). If omitted, label is global. Get from get_projects.')
       }).describe('Label data')
     },
     async ({ labelData }) => {
@@ -3161,6 +3243,7 @@ export function registerCoreTools(server) {
   // Get all states
   server.tool(
     'get_all_states',
+    'Fetches all available task states in Freelo. States represent task lifecycle status (e.g., 1=active/open, 2=finished/completed, 3=archived). Essential for understanding state IDs before using get_all_tasks with state_id filter or when analyzing task workflows. Returns state IDs, names, and descriptions.',
     {},
     async () => {
       try {
