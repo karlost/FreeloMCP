@@ -7,9 +7,12 @@ import { z } from 'zod';
 import { createApiClient } from '../utils/apiClient.js';
 import { formatResponse } from '../utils/responseFormatter.js';
 import { handleToolError } from '../utils/errorHandler.js';
+import { registerToolWithMetadata } from '../utils/registerToolWithMetadata.js';
+import { ProjectSchema, ProjectDetailedSchema, createArrayResponseSchema } from '../utils/schemas.js';
 
 export function registerProjectsTools(server) {
-  server.tool(
+  registerToolWithMetadata(
+    server,
     'get_projects',
     'Fetches your own active projects in Freelo. Returns only projects that you own (where you are the project owner). For a complete list including shared projects, use get_all_projects instead. This is the quickest way to get an overview of projects you directly manage.',
     {},
@@ -26,10 +29,14 @@ export function registerProjectsTools(server) {
       } catch (error) {
         return handleToolError(error, 'get_projects');
       }
+    },
+    {
+      outputSchema: createArrayResponseSchema(ProjectSchema)
     }
   );
   
-  server.tool(
+  registerToolWithMetadata(
+    server,
     'get_all_projects',
     'Fetches all projects in Freelo - both projects you own and projects shared with you. Supports pagination for large datasets. Use this when you need a comprehensive view of all accessible projects, including archived and template projects. For just your own projects, use get_projects for better performance.',
     {},
@@ -46,10 +53,14 @@ export function registerProjectsTools(server) {
       } catch (error) {
         return handleToolError(error, 'get_all_projects');
       }
+    },
+    {
+      outputSchema: createArrayResponseSchema(ProjectSchema)
     }
   );
   
-  server.tool(
+  registerToolWithMetadata(
+    server,
     'create_project',
     'Creates a new project in Freelo. Requires a project name and currency. Optionally, you can specify a project owner (defaults to current user). The project will be created in active state. Use create_project_from_template if you want to create from an existing template instead.',
     {
@@ -72,7 +83,7 @@ export function registerProjectsTools(server) {
         if (formattedData.project_owner_id !== undefined) {
           formattedData.project_owner_id = String(formattedData.project_owner_id);
         }
-  
+
         const response = await apiClient.post('/projects', formattedData);
         return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
       } catch (error) {
@@ -89,10 +100,14 @@ export function registerProjectsTools(server) {
           isError: true
         };
       }
+    },
+    {
+      outputSchema: ProjectSchema
     }
   );
   
-  server.tool(
+  registerToolWithMetadata(
+    server,
     'get_project_details',
     'Fetches detailed information about a specific project, including workers, tasklists, custom fields, and project settings. Use this after get_projects or get_all_projects to dive deeper into a specific project. Essential for understanding project structure before creating tasks or managing workers.',
     {
@@ -122,10 +137,14 @@ export function registerProjectsTools(server) {
           isError: true
         };
       }
+    },
+    {
+      outputSchema: ProjectDetailedSchema
     }
   );
   
-  server.tool(
+  registerToolWithMetadata(
+    server,
     'archive_project',
     'Archives a project in Freelo. Archived projects are hidden from default views but remain accessible via get_archived_projects. All project data, tasks, and history are preserved. This is reversible - use activate_project to restore. Archiving is recommended over deletion for completed projects.',
     {
@@ -155,10 +174,14 @@ export function registerProjectsTools(server) {
           isError: true
         };
       }
+    },
+    {
+      outputSchema: ProjectSchema
     }
   );
   
-  server.tool(
+  registerToolWithMetadata(
+    server,
     'activate_project',
     'Activates an archived project in Freelo. The project will become visible in default views again and all functionality will be restored. Use this to un-archive projects that were previously archived. Get archived project IDs from get_archived_projects.',
     {
@@ -188,10 +211,14 @@ export function registerProjectsTools(server) {
           isError: true
         };
       }
+    },
+    {
+      outputSchema: ProjectSchema
     }
   );
   
-  server.tool(
+  registerToolWithMetadata(
+    server,
     'delete_project',
     'Permanently deletes a project from Freelo. WARNING: This action is irreversible! All tasks, files, comments, and project data will be permanently lost. Consider using archive_project instead for completed projects to preserve data. Only use this when you are absolutely certain the project should be removed.',
     {
@@ -221,6 +248,9 @@ export function registerProjectsTools(server) {
           isError: true
         };
       }
+    },
+    {
+      outputSchema: ProjectSchema
     }
   );
 }

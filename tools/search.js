@@ -5,10 +5,13 @@
 
 import { z } from 'zod';
 import { createApiClient } from '../utils/apiClient.js';
+import { registerToolWithMetadata } from '../utils/registerToolWithMetadata.js';
+import { createArrayResponseSchema } from '../utils/schemas.js';
 
 export function registerSearchTools(server) {
   // Search Elasticsearch
-  server.tool(
+  registerToolWithMetadata(
+    server,
     'search_elasticsearch',
     'Performs powerful full-text search across Freelo using Elasticsearch. Searches through tasks, subtasks, projects, tasklists, files, and comments with advanced filtering options. Essential for finding content when you don\'t know the exact location. Supports filtering by projects, tasklists, authors, workers, states, entity types, and pagination. Much more powerful than get_all_tasks search_query for cross-entity searches.',
     {
@@ -49,6 +52,9 @@ export function registerSearchTools(server) {
           isError: true
         };
       }
+    },
+    {
+      outputSchema: createArrayResponseSchema(z.any())
     }
   );
 }

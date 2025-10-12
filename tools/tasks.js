@@ -7,9 +7,12 @@ import { z } from 'zod';
 import { createApiClient } from '../utils/apiClient.js';
 import { formatResponse } from '../utils/responseFormatter.js';
 import { handleToolError } from '../utils/errorHandler.js';
+import { registerToolWithMetadata } from '../utils/registerToolWithMetadata.js';
+import { TaskSchema, createArrayResponseSchema } from '../utils/schemas.js';
 
 export function registerTasksTools(server) {
-  server.tool(
+  registerToolWithMetadata(
+    server,
     'get_all_tasks',
     'Fetches all tasks across all projects with powerful filtering options. Supports 14 different filters including fulltext search, project/tasklist filtering, label filtering, date ranges, worker assignment, and pagination. This is the primary tool for finding tasks - essential for task management workflows. For tasks in a specific tasklist, use get_tasklist_tasks for simpler queries.',
     {
@@ -67,10 +70,14 @@ export function registerTasksTools(server) {
           isError: true
         };
       }
+    },
+    {
+      outputSchema: createArrayResponseSchema(TaskSchema)
     }
   );
-  
-  server.tool(
+
+  registerToolWithMetadata(
+    server,
     'get_tasklist_tasks',
     'Fetches tasks from a specific tasklist within a project. Simpler than get_all_tasks when you already know the project and tasklist. Returns tasks sorted by priority by default. Use this when drilling down from project → tasklist → tasks hierarchy. For cross-project task searches or complex filtering, use get_all_tasks instead.',
     {
@@ -108,10 +115,14 @@ export function registerTasksTools(server) {
           isError: true
         };
       }
+    },
+    {
+      outputSchema: createArrayResponseSchema(TaskSchema)
     }
   );
-  
-  server.tool(
+
+  registerToolWithMetadata(
+    server,
     'create_task',
     'Creates a new task in a specific tasklist within a project. The task is created in active state by default. You can optionally assign it to a worker, set a due date, and add a description. After creation, use edit_task for modifications, or create_subtask to add subtasks. For creating from templates, use create_task_from_template instead.',
     {
@@ -148,7 +159,10 @@ export function registerTasksTools(server) {
           isError: true
         };
       }
+    },
+    {
+      outputSchema: TaskSchema
     }
   );
-  
+
 }

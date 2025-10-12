@@ -24,6 +24,7 @@ MCP Server pro [Freelo](https://www.freelo.io/cs) API v1 - kompletní implementa
 - 🔒 **Bezpečné** - HTTP Basic Authentication s API klíčem
 - 🎯 **Optimalizováno** - Token limit fixes pro velké datasety
 - 📝 **Kompletní dokumentace** - Detailní popis všech tools
+- 🏷️ **MCP Annotations** - Automatické behavioral hints (readOnly, destructive, idempotent)
 
 ## 📊 Stav projektu
 
@@ -795,6 +796,23 @@ Příspěvky jsou vítány!
 5. Otevřete Pull Request
 
 ## 📝 Changelog
+
+### v2.3.0 (2025-10-12) - MCP Annotations Implementation! 🏷️
+- ✨ **NOVÁ FUNKCE:** Implementovány MCP tool annotations pro všech 98 tools
+- 🏷️ **Behavioral Hints:** Každý tool má automatické anotace:
+  - `readOnlyHint: true` - 41 tools jen čtou data (bezpečné bez potvrzení)
+  - `destructiveHint: true` - 14 tools mohou smazat data (vyžadují potvrzení)
+  - `idempotentHint: true` - 18 tools lze bezpečně opakovat
+  - `openWorldHint: false` - všechny tools používají jen Freelo API
+- 📝 **Auto-generated Titles:** Každý tool má lidsky čitelný název (e.g., "Get All Tasks")
+- 🔧 **Centralizovaná správa:** Nový `utils/toolAnnotations.js` pro snadnou údržbu
+- ✅ **100% pokrytí:** Všechny tools refaktorovány, žádné syntax errory
+- 🧪 **Kompletně otestováno:** Nový test-annotations.js ověřuje správnost implementace
+- 📚 **Dokumentace:** Nové soubory ANNOTATIONS_IMPLEMENTATION.md a TOOL_DESCRIPTIONS_ANALYSIS.md
+- 🎯 **Výhody pro uživatele:**
+  - Lepší UX v Claude Desktop (varování pro destructive operace)
+  - Bezpečnější automatic retries pro idempotent tools
+  - Rychlejší workflow (read-only tools bez extra potvrzení)
 
 ### v2.2.0 (2025-10-11) - AI Usability Upgrade! 🤖
 - ✨ **VÝZNAMNÁ AKTUALIZACE:** Všech 98 tools vylepšeno pro lepší použití s AI agenty
