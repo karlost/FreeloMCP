@@ -25,6 +25,7 @@ MCP Server pro [Freelo](https://www.freelo.io/cs) API v1 - kompletní implementa
 - 🎯 **Optimalizováno** - Token limit fixes pro velké datasety
 - 📝 **Kompletní dokumentace** - Detailní popis všech tools
 - 🏷️ **MCP Annotations** - Automatické behavioral hints (readOnly, destructive, idempotent)
+- 📋 **OutputSchema** - Zod schemas pro validaci všech API odpovědí
 
 ## 📊 Stav projektu
 
@@ -797,15 +798,22 @@ Příspěvky jsou vítány!
 
 ## 📝 Changelog
 
-### v2.3.0 (2025-10-12) - MCP Annotations Implementation! 🏷️
-- ✨ **NOVÁ FUNKCE:** Implementovány MCP tool annotations pro všech 98 tools
+### v2.3.0 (2025-10-12) - Complete MCP Metadata Implementation! 🏷️📊
+- ✨ **NOVÁ FUNKCE:** Implementovány MCP tool annotations + outputSchema pro všech 98 tools
 - 🏷️ **Behavioral Hints:** Každý tool má automatické anotace:
   - `readOnlyHint: true` - 41 tools jen čtou data (bezpečné bez potvrzení)
   - `destructiveHint: true` - 14 tools mohou smazat data (vyžadují potvrzení)
   - `idempotentHint: true` - 18 tools lze bezpečně opakovat
   - `openWorldHint: false` - všechny tools používají jen Freelo API
+- 📊 **OutputSchema:** Všech 98 tools má definované Zod schemas pro validaci výstupů
+  - Založeno na oficiální freelo.apib API dokumentaci
+  - Lepší pochopení struktury dat pro AI agenty
+  - Type validation pro všechny API odpovědi
 - 📝 **Auto-generated Titles:** Každý tool má lidsky čitelný název (e.g., "Get All Tasks")
-- 🔧 **Centralizovaná správa:** Nový `utils/toolAnnotations.js` pro snadnou údržbu
+- 🔧 **Centralizovaná správa:**
+  - Nový `utils/toolAnnotations.js` pro behavioral hints
+  - Nový `utils/schemas.js` pro kompletní Zod schemas knihovnu
+  - Nový `utils/registerToolWithMetadata.js` pro automatické application
 - ✅ **100% pokrytí:** Všechny tools refaktorovány, žádné syntax errory
 - 🧪 **Kompletně otestováno:** Nový test-annotations.js ověřuje správnost implementace
 - 📚 **Dokumentace:** Nové soubory ANNOTATIONS_IMPLEMENTATION.md a TOOL_DESCRIPTIONS_ANALYSIS.md
@@ -813,6 +821,7 @@ Příspěvky jsou vítány!
   - Lepší UX v Claude Desktop (varování pro destructive operace)
   - Bezpečnější automatic retries pro idempotent tools
   - Rychlejší workflow (read-only tools bez extra potvrzení)
+  - Přesnější parsování odpovědí pomocí schemas
 
 ### v2.2.0 (2025-10-11) - AI Usability Upgrade! 🤖
 - ✨ **VÝZNAMNÁ AKTUALIZACE:** Všech 98 tools vylepšeno pro lepší použití s AI agenty
