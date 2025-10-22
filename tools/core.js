@@ -343,7 +343,15 @@ export function registerCoreTools(server) {
           userAgent: process.env.FREELO_USER_AGENT
         };
         const apiClient = createApiClient(auth);
-        const response = await apiClient.post(`/task/${taskId}/subtasks`, subtaskData);
+
+        // Transform description to comment.content for API
+        const apiData = { ...subtaskData };
+        if (subtaskData.description) {
+          apiData.comment = { content: subtaskData.description };
+          delete apiData.description;
+        }
+
+        const response = await apiClient.post(`/task/${taskId}/subtasks`, apiData);
         return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
       } catch (error) {
         console.error('Error in create_subtask:', error);
@@ -490,16 +498,14 @@ export function registerCoreTools(server) {
   registerToolWithMetadata(
     server,
     'edit_task',
-    'Updates an existing task with new information. You can modify any combination of name, description, assignment, due date, priority, or status. All fields are optional - only provide the fields you want to change. Get task details with get_task_details first to see current values. For description-only updates, use update_task_description instead.',
+    'Updates an existing task with new information. You can modify any combination of name, assignment, due date, or priority. All fields are optional - only provide the fields you want to change. Get task details with get_task_details first to see current values. IMPORTANT: To update task description, use update_task_description instead - this endpoint does not support description updates.',
     {
       taskId: z.string().describe('Unique task identifier to update (numeric string, e.g., "25368707"). Get from get_all_tasks or get_task_details.'),
       taskData: z.object({
         name: z.string().optional().describe('Optional: New task name/title'),
-        description: z.string().optional().describe('Optional: New task description (plain text or markdown)'),
         assignedTo: z.string().optional().describe('Optional: User ID to assign task to (numeric string). Get from get_project_workers.'),
         dueDate: z.string().optional().describe('Optional: New due date in format YYYY-MM-DD or YYYY-MM-DD HH:MM:SS'),
-        priority: z.number().optional().describe('Optional: Task priority (numeric value, higher = more important)'),
-        status: z.string().optional().describe('Optional: Task status identifier')
+        priority: z.number().optional().describe('Optional: Task priority (numeric value, higher = more important)')
       }).describe('Task update data - only include fields to change')
     },
     async ({ taskId, taskData }) => {

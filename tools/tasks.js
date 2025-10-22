@@ -143,7 +143,15 @@ export function registerTasksTools(server) {
           userAgent: process.env.FREELO_USER_AGENT
         };
         const apiClient = createApiClient(auth);
-        const response = await apiClient.post(`/project/${projectId}/tasklist/${tasklistId}/tasks`, taskData);
+
+        // Transform description to comment.content for API
+        const apiData = { ...taskData };
+        if (taskData.description) {
+          apiData.comment = { content: taskData.description };
+          delete apiData.description;
+        }
+
+        const response = await apiClient.post(`/project/${projectId}/tasklist/${tasklistId}/tasks`, apiData);
         return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
       } catch (error) {
         console.error('Error in create_task:', error);
