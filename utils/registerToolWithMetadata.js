@@ -60,11 +60,27 @@ export function registerToolWithMetadata(
   // Get automatic title
   const autoTitle = getToolTitle(name);
 
+  // IMPORTANT: MCP SDK automatically calls z.object() on inputSchema and outputSchema
+  // If we pass z.object(...) directly, SDK will do z.object(z.object(...)) which breaks
+  // Solution: Extract .shape from ZodObject schemas to get the raw shape
+  let processedInputSchema = inputSchema;
+  let processedOutputSchema = options.outputSchema;
+
+  // If inputSchema is a ZodObject, extract its shape
+  if (inputSchema && typeof inputSchema === 'object' && inputSchema._def && inputSchema._def.typeName === 'ZodObject') {
+    processedInputSchema = inputSchema.shape;
+  }
+
+  // If outputSchema is a ZodObject, extract its shape
+  if (processedOutputSchema && typeof processedOutputSchema === 'object' && processedOutputSchema._def && processedOutputSchema._def.typeName === 'ZodObject') {
+    processedOutputSchema = processedOutputSchema.shape;
+  }
+
   // Build config object for registerTool
   const config = {
     title: options.title || autoTitle,
     description: description,
-    inputSchema: inputSchema,
+    inputSchema: processedInputSchema,
     annotations: {
       ...autoAnnotations,
       ...(options.annotations || {})
@@ -72,8 +88,8 @@ export function registerToolWithMetadata(
   };
 
   // Add outputSchema if provided
-  if (options.outputSchema) {
-    config.outputSchema = options.outputSchema;
+  if (processedOutputSchema) {
+    config.outputSchema = processedOutputSchema;
   }
 
   // Register the tool

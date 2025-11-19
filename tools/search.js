@@ -37,7 +37,10 @@ export function registerSearchTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post('/search', searchData);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in search_elasticsearch:', error);
         return {

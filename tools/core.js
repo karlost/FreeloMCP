@@ -48,7 +48,10 @@ export function registerCoreTools(server) {
             projects_ids: [projectId]
           }
         });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_project_tasklists:', error);
         return {
@@ -84,7 +87,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get('/users');
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_users:', error);
         return {
@@ -125,7 +131,10 @@ export function registerCoreTools(server) {
         const response = await apiClient.post(`/project/${projectId}/remove-workers`, {
           users_ids: userIds
         });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in remove_workers:', error);
         return {
@@ -167,7 +176,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get('/all-docs-and-files', { params: filters });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_all_files:', error);
         return {
@@ -230,7 +242,10 @@ export function registerCoreTools(server) {
         // Make request
         const response = await apiClient.post('/file/upload', form, { headers });
   
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in upload_file:', error);
         return {
@@ -292,14 +307,16 @@ export function registerCoreTools(server) {
         }
   
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
+          content: [{ type: 'text', text: JSON.stringify({
               filename,
               contentType,
               data: base64Data
-            })
-          }]
+            }) }],
+          structuredContent: {
+              filename,
+              contentType,
+              data: base64Data
+            }
         };
       } catch (error) {
         console.error('Error in download_file:', error);
@@ -358,20 +375,13 @@ export function registerCoreTools(server) {
         }
 
         const response = await apiClient.post(`/task/${taskId}/subtasks`, apiData);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in create_subtask:', error);
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: 'Tool execution failed',
-              message: error.message,
-              details: error.response?.data || error.toString()
-            })
-          }],
-          isError: true
-        };
+        throw new Error(`Failed to create subtask: ${error.message}`);
       }
     },
     {
@@ -396,7 +406,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get(`/task/${taskId}/subtasks`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_subtasks:', error);
         return {
@@ -441,7 +454,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/project/${projectId}/tasklists`, tasklistData);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in create_tasklist:', error);
         return {
@@ -479,7 +495,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get(`/task/${taskId}`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_task_details:', error);
         return {
@@ -531,20 +550,13 @@ export function registerCoreTools(server) {
         }
 
         const response = await apiClient.post(`/task/${taskId}`, apiData);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in edit_task:', error);
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: 'Tool execution failed',
-              message: error.message,
-              details: error.response?.data || error.toString()
-            })
-          }],
-          isError: true
-        };
+        throw new Error(`Failed to edit task: ${error.message}`);
       }
     },
     {
@@ -569,7 +581,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.delete(`/task/${taskId}`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in delete_task:', error);
         return {
@@ -607,7 +622,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/task/${taskId}/finish`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in finish_task:', error);
         return {
@@ -645,7 +663,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/task/${taskId}/activate`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in activate_task:', error);
         return {
@@ -689,7 +710,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/task/${taskId}/comments`, commentData);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in create_comment:', error);
         return {
@@ -736,7 +760,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/comment/${commentId}`, commentData);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in edit_comment:', error);
         return {
@@ -783,7 +810,10 @@ export function registerCoreTools(server) {
         };
   
         const response = await apiClient.post(`/task-labels/add-to-task/${taskId}`, requestBody);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in add_labels_to_task:', error);
         return {
@@ -828,7 +858,10 @@ export function registerCoreTools(server) {
         };
   
         const response = await apiClient.post(`/task-labels/remove-from-task/${taskId}`, requestBody);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in remove_labels_from_task:', error);
         return {
@@ -872,7 +905,10 @@ export function registerCoreTools(server) {
         const apiClient = createApiClient(auth);
         const params = page !== undefined ? { p: page } : {};
         const response = await apiClient.get('/invited-projects', { params });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_invited_projects:', error);
         return {
@@ -911,7 +947,10 @@ export function registerCoreTools(server) {
         const apiClient = createApiClient(auth);
         const params = page !== undefined ? { p: page } : {};
         const response = await apiClient.get('/archived-projects', { params });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_archived_projects:', error);
         return {
@@ -957,7 +996,10 @@ export function registerCoreTools(server) {
         const params = filters.page !== undefined ? { ...filters, p: filters.page } : filters;
         delete params.page;
         const response = await apiClient.get('/template-projects', { params });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_template_projects:', error);
         return {
@@ -1003,7 +1045,10 @@ export function registerCoreTools(server) {
         const params = filters.page !== undefined ? { ...filters, p: filters.page } : filters;
         delete params.page;
         const response = await apiClient.get(`/user/${userId}/all-projects`, { params });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_user_projects:', error);
         return {
@@ -1043,7 +1088,10 @@ export function registerCoreTools(server) {
         const apiClient = createApiClient(auth);
         const params = page !== undefined ? { p: page } : {};
         const response = await apiClient.get(`/project/${projectId}/workers`, { params });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_project_workers:', error);
         return {
@@ -1084,7 +1132,10 @@ export function registerCoreTools(server) {
         const response = await apiClient.post(`/project/${projectId}/remove-workers/by-emails`, {
           emails: emails
         });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in remove_workers_by_emails:', error);
         return {
@@ -1126,7 +1177,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/project/create-from-template/${templateId}`, projectData);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in create_project_from_template:', error);
         return {
@@ -1170,7 +1224,10 @@ export function registerCoreTools(server) {
         const apiClient = createApiClient(auth);
         const params = search_query ? { search_query } : {};
         const response = await apiClient.get(`/tasklist/${tasklistId}/finished-tasks`, { params });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_finished_tasks:', error);
         return {
@@ -1209,7 +1266,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/task/${taskId}/move/${targetTasklistId}`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in move_task:', error);
         return {
@@ -1247,7 +1307,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get(`/task/${taskId}/description`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_task_description:', error);
         return {
@@ -1286,7 +1349,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/task/${taskId}/description`, { content: description });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in update_task_description:', error);
         return {
@@ -1333,7 +1399,10 @@ export function registerCoreTools(server) {
           ...(reminderData.user_ids && { user_ids: reminderData.user_ids })
         };
         const response = await apiClient.post(`/task/${taskId}/reminder`, apiData);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in create_task_reminder:', error);
         return {
@@ -1371,7 +1440,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.delete(`/task/${taskId}/reminder`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in delete_task_reminder:', error);
         return {
@@ -1409,7 +1481,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get(`/public-link/task/${taskId}`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_public_link:', error);
         return {
@@ -1447,7 +1522,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.delete(`/public-link/task/${taskId}`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in delete_public_link:', error);
         return {
@@ -1490,7 +1568,10 @@ export function registerCoreTools(server) {
           project_id: projectId,
           tasklist_id: tasklistId
         });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in create_task_from_template:', error);
         return {
@@ -1529,7 +1610,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/task/${taskId}/total-time-estimate`, { minutes });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in set_total_time_estimate:', error);
         return {
@@ -1567,7 +1651,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.delete(`/task/${taskId}/total-time-estimate`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in delete_total_time_estimate:', error);
         return {
@@ -1607,7 +1694,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/task/${taskId}/users-time-estimates/${userId}`, { minutes });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in set_user_time_estimate:', error);
         return {
@@ -1646,7 +1736,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.delete(`/task/${taskId}/users-time-estimates/${userId}`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in delete_user_time_estimate:', error);
         return {
@@ -1696,7 +1789,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get('/work-reports', { params: filters });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_work_reports:', error);
         return {
@@ -1739,7 +1835,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/task/${taskId}/work-reports`, reportData);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in create_work_report:', error);
         return {
@@ -1782,7 +1881,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/work-reports/${workReportId}`, reportData);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in update_work_report:', error);
         return {
@@ -1820,7 +1922,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.delete(`/work-reports/${workReportId}`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in delete_work_report:', error);
         return {
@@ -1863,7 +1968,10 @@ export function registerCoreTools(server) {
         const apiClient = createApiClient(auth);
         const params = taskId ? { task_id: taskId } : {};
         const response = await apiClient.post('/timetracking/start', null, { params });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in start_time_tracking:', error);
         return {
@@ -1899,7 +2007,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post('/timetracking/stop');
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in stop_time_tracking:', error);
         return {
@@ -1940,7 +2051,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post('/timetracking/edit', trackingData);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in edit_time_tracking:', error);
         return {
@@ -1980,7 +2094,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get('/custom-field/get-types');
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_custom_field_types:', error);
         return {
@@ -2023,7 +2140,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/custom-field/create/${projectId}`, fieldData);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in create_custom_field:', error);
         return {
@@ -2062,7 +2182,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/custom-field/rename/${uuid}`, { name });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in rename_custom_field:', error);
         return {
@@ -2100,7 +2223,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.delete(`/custom-field/delete/${uuid}`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in delete_custom_field:', error);
         return {
@@ -2138,7 +2264,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/custom-field/restore/${uuid}`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in restore_custom_field:', error);
         return {
@@ -2180,7 +2309,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post('/custom-field/add-or-edit-value', valueData);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in add_or_edit_field_value:', error);
         return {
@@ -2222,7 +2354,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post('/custom-field/add-or-edit-enum-value', valueData);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in add_or_edit_enum_value:', error);
         return {
@@ -2260,7 +2395,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.delete(`/custom-field/delete-value/${uuid}`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in delete_field_value:', error);
         return {
@@ -2298,7 +2436,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get(`/custom-field/find-by-project/${projectId}`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_custom_fields_by_project:', error);
         return {
@@ -2336,7 +2477,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get(`/custom-field-enum/get-for-custom-field/${customFieldUuid}`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_enum_options:', error);
         return {
@@ -2378,7 +2522,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/custom-field-enum/create/${customFieldUuid}`, optionData);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in create_enum_option:', error);
         return {
@@ -2424,7 +2571,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get('/issued-invoices', { params: filters });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_issued_invoices:', error);
         return {
@@ -2462,7 +2612,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get(`/issued-invoice/${invoiceId}`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_invoice_detail:', error);
         return {
@@ -2500,7 +2653,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get(`/issued-invoice/${invoiceId}/reports`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in download_invoice_reports:', error);
         return {
@@ -2538,7 +2694,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/issued-invoice/${invoiceId}/mark-as-invoiced`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in mark_as_invoiced:', error);
         return {
@@ -2583,7 +2742,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get('/all-notifications', { params: filters });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_all_notifications:', error);
         return {
@@ -2621,7 +2783,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/notification/${notificationId}/mark-as-read`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in mark_notification_read:', error);
         return {
@@ -2659,7 +2824,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/notification/${notificationId}/mark-as-unread`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in mark_notification_unread:', error);
         return {
@@ -2705,7 +2873,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/project/${projectId}/note`, noteData);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in create_note:', error);
         return {
@@ -2743,7 +2914,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get(`/note/${noteId}`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_note:', error);
         return {
@@ -2785,7 +2959,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/note/${noteId}`, noteData);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in update_note:', error);
         return {
@@ -2823,7 +3000,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.delete(`/note/${noteId}`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in delete_note:', error);
         return {
@@ -2863,7 +3043,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get('/users/project-manager-of');
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_project_manager_of:', error);
         return {
@@ -2905,7 +3088,10 @@ export function registerCoreTools(server) {
           project_id: projectId,
           emails: emails
         });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in invite_users_by_email:', error);
         return {
@@ -2947,7 +3133,10 @@ export function registerCoreTools(server) {
           projects_ids: [projectId],  // API expects 'projects_ids' as array when using users_ids
           users_ids: userIds
         });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in invite_users_by_ids:', error);
         return {
@@ -2985,7 +3174,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get(`/user/${userId}/out-of-office`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_out_of_office:', error);
         return {
@@ -3031,7 +3223,10 @@ export function registerCoreTools(server) {
         const response = await apiClient.post(`/user/${userId}/out-of-office`, {
           out_of_office: outOfOfficeData
         });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in set_out_of_office:', error);
         return {
@@ -3069,7 +3264,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.delete(`/user/${userId}/out-of-office`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in delete_out_of_office:', error);
         return {
@@ -3122,7 +3320,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get('/events', { params: filters });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_events:', error);
         return {
@@ -3160,7 +3361,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get(`/tasklist/${tasklistId}`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_tasklist_details:', error);
         return {
@@ -3199,7 +3403,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get(`/project/${projectId}/tasklist/${tasklistId}/assignable-workers`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_assignable_workers:', error);
         return {
@@ -3242,7 +3449,10 @@ export function registerCoreTools(server) {
           tasklist_id: parseInt(templateId),
           target_project_id: parseInt(projectId)
         });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in create_tasklist_from_template:', error);
         return {
@@ -3278,7 +3488,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get('/dashboard/custom-filters');
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_custom_filters:', error);
         return {
@@ -3316,7 +3529,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get(`/dashboard/custom-filter/by-uuid/${uuid}/tasks`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_tasks_by_filter_uuid:', error);
         return {
@@ -3354,7 +3570,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get(`/dashboard/custom-filter/by-name/${encodeURIComponent(name)}/tasks`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_tasks_by_filter_name:', error);
         return {
@@ -3393,7 +3612,10 @@ export function registerCoreTools(server) {
         const apiClient = createApiClient(auth);
         const params = projectId ? { project_id: projectId } : {};
         const response = await apiClient.get('/project-labels/find-available', { params });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in find_available_labels:', error);
         return {
@@ -3431,7 +3653,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get(`/project/${projectId}/pinned-items`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_pinned_items:', error);
         return {
@@ -3479,7 +3704,10 @@ export function registerCoreTools(server) {
           link: itemData.link || '#'  // Use '#' instead of empty string
         };
         const response = await apiClient.post(`/project/${projectId}/pinned-items`, apiData);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in pin_item:', error);
         return {
@@ -3517,7 +3745,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.delete(`/pinned-item/${pinnedItemId}`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in delete_pinned_item:', error);
         return {
@@ -3561,7 +3792,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get('/all-comments', { params: filters });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_all_comments:', error);
         return {
@@ -3603,7 +3837,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post('/task-labels', { labels: [labelData] });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in create_task_labels:', error);
         return {
@@ -3639,7 +3876,10 @@ export function registerCoreTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get('/states');
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_all_states:', error);
         return {

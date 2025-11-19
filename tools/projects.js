@@ -85,7 +85,10 @@ export function registerProjectsTools(server) {
         }
 
         const response = await apiClient.post('/projects', formattedData);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in create_project:', error);
         return {
@@ -122,7 +125,10 @@ export function registerProjectsTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.get(`/project/${projectId}`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_project_details:', error);
         return {
@@ -159,7 +165,10 @@ export function registerProjectsTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/project/${projectId}/archive`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in archive_project:', error);
         return {
@@ -196,7 +205,10 @@ export function registerProjectsTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.post(`/project/${projectId}/activate`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in activate_project:', error);
         return {
@@ -233,7 +245,10 @@ export function registerProjectsTools(server) {
         };
         const apiClient = createApiClient(auth);
         const response = await apiClient.delete(`/project/${projectId}`);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in delete_project:', error);
         return {

@@ -186,7 +186,7 @@ export const TaskSchema = z.object({
   due_date: DateTimeSchema.optional().nullable(),
   due_date_end: DateTimeSchema.optional().nullable(),
   worker: UserMinimalSchema.optional().nullable(),
-  priority_enum: PrioritySchema.optional(),
+  priority_enum: PrioritySchema.optional().nullable(),
   labels: z.array(LabelSchema).optional(),
   tracking_users: z.array(UserMinimalSchema).optional(),
   state_id: StateIdSchema.optional(),

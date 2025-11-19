@@ -5,8 +5,6 @@
 
 import { z } from 'zod';
 import { createApiClient } from '../utils/apiClient.js';
-import { formatResponse } from '../utils/responseFormatter.js';
-import { handleToolError } from '../utils/errorHandler.js';
 import { registerToolWithMetadata } from '../utils/registerToolWithMetadata.js';
 import { TaskSchema, createArrayResponseSchema } from '../utils/schemas.js';
 
@@ -55,20 +53,13 @@ export function registerTasksTools(server) {
           data = data.data.tasks;
         }
 
-        return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(data) }],
+          structuredContent: data
+        };
       } catch (error) {
         console.error('Error in get_all_tasks:', error);
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: 'Tool execution failed',
-              message: error.message,
-              details: error.response?.data || error.toString()
-            })
-          }],
-          isError: true
-        };
+        throw new Error(`Failed to fetch tasks: ${error.message}`);
       }
     },
     {
@@ -100,20 +91,13 @@ export function registerTasksTools(server) {
             order: order
           }
         });
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in get_tasklist_tasks:', error);
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: 'Tool execution failed',
-              message: error.message,
-              details: error.response?.data || error.toString()
-            })
-          }],
-          isError: true
-        };
+        throw new Error(`Failed to fetch tasklist tasks: ${error.message}`);
       }
     },
     {
@@ -158,20 +142,13 @@ export function registerTasksTools(server) {
         }
 
         const response = await apiClient.post(`/project/${projectId}/tasklist/${tasklistId}/tasks`, apiData);
-        return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(response.data) }],
+          structuredContent: response.data
+        };
       } catch (error) {
         console.error('Error in create_task:', error);
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: 'Tool execution failed',
-              message: error.message,
-              details: error.response?.data || error.toString()
-            })
-          }],
-          isError: true
-        };
+        throw new Error(`Failed to create task: ${error.message}`);
       }
     },
     {
