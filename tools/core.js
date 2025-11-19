@@ -331,7 +331,7 @@ export function registerCoreTools(server) {
       subtaskData: z.object({
         name: z.string().describe('Subtask name - clear and actionable (e.g., "Write unit tests", "Review code", "Update documentation")'),
         description: z.string().optional().describe('Optional: Detailed subtask description with context or requirements'),
-        assignedTo: z.string().optional().describe('Optional: User ID to assign subtask to (numeric string). Can be different from parent task assignee. Get from get_project_workers.'),
+        worker: z.number().optional().describe('Optional: User ID to assign subtask to (numeric). Can be different from parent task assignee. Get from get_project_workers.'),
         dueDate: z.string().optional().describe('Optional: Due date in format YYYY-MM-DD or YYYY-MM-DD HH:MM:SS')
       }).describe('Subtask creation data')
     },
@@ -349,6 +349,12 @@ export function registerCoreTools(server) {
         if (subtaskData.description) {
           apiData.comment = { content: subtaskData.description };
           delete apiData.description;
+        }
+
+        // Transform dueDate to due_date for API
+        if (subtaskData.dueDate) {
+          apiData.due_date = subtaskData.dueDate;
+          delete apiData.dueDate;
         }
 
         const response = await apiClient.post(`/task/${taskId}/subtasks`, apiData);
@@ -503,7 +509,7 @@ export function registerCoreTools(server) {
       taskId: z.string().describe('Unique task identifier to update (numeric string, e.g., "25368707"). Get from get_all_tasks or get_task_details.'),
       taskData: z.object({
         name: z.string().optional().describe('Optional: New task name/title'),
-        assignedTo: z.string().optional().describe('Optional: User ID to assign task to (numeric string). Get from get_project_workers.'),
+        worker: z.number().optional().describe('Optional: User ID to assign task to (numeric). Get from get_project_workers.'),
         dueDate: z.string().optional().describe('Optional: New due date in format YYYY-MM-DD or YYYY-MM-DD HH:MM:SS'),
         priority: z.number().optional().describe('Optional: Task priority (numeric value, higher = more important)')
       }).describe('Task update data - only include fields to change')
@@ -516,7 +522,15 @@ export function registerCoreTools(server) {
           userAgent: process.env.FREELO_USER_AGENT
         };
         const apiClient = createApiClient(auth);
-        const response = await apiClient.post(`/task/${taskId}`, taskData);
+
+        // Transform dueDate to due_date for API
+        const apiData = { ...taskData };
+        if (taskData.dueDate) {
+          apiData.due_date = taskData.dueDate;
+          delete apiData.dueDate;
+        }
+
+        const response = await apiClient.post(`/task/${taskId}`, apiData);
         return { content: [{ type: 'text', text: JSON.stringify(response.data) }] };
       } catch (error) {
         console.error('Error in edit_task:', error);

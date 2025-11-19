@@ -131,7 +131,7 @@ export function registerTasksTools(server) {
       taskData: z.object({
         name: z.string().describe('Task name - clear and descriptive title (required, e.g., "Fix login bug" or "Design homepage mockup")'),
         description: z.string().optional().describe('Optional: Detailed task description in plain text or markdown. Use for context, requirements, or acceptance criteria.'),
-        assignedTo: z.string().optional().describe('Optional: User ID to assign the task to (numeric string, e.g., "12345"). Get from get_project_workers. Leave empty for unassigned.'),
+        worker: z.number().optional().describe('Optional: User ID to assign the task to (numeric, e.g., 12345). Get from get_project_workers. Leave empty for unassigned.'),
         dueDate: z.string().optional().describe('Optional: Due date in format YYYY-MM-DD or YYYY-MM-DD HH:MM:SS (e.g., "2025-10-15" or "2025-10-15 17:00:00")')
       }).describe('Task creation data')
     },
@@ -149,6 +149,12 @@ export function registerTasksTools(server) {
         if (taskData.description) {
           apiData.comment = { content: taskData.description };
           delete apiData.description;
+        }
+
+        // Transform dueDate to due_date for API
+        if (taskData.dueDate) {
+          apiData.due_date = taskData.dueDate;
+          delete apiData.dueDate;
         }
 
         const response = await apiClient.post(`/project/${projectId}/tasklist/${tasklistId}/tasks`, apiData);
