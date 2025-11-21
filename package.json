@@ -1,12 +1,13 @@
 {
   "name": "freelo-mcp",
-  "version": "2.3.1",
+  "version": "2.4.0",
   "description": "MCP Server for Freelo API v1",
   "main": "server.js",
   "type": "module",
   "bin": {
     "freelo-mcp": "bin/freelo-mcp.js",
-    "freelo-mcp-sse": "mcp-server-sse.js"
+    "freelo-mcp-sse": "mcp-server-sse.js",
+    "freelo-mcp-http": "mcp-server-http.js"
   },
   "scripts": {
     "start": "node server.js",
@@ -15,7 +16,9 @@
     "mcp": "node mcp-server.js",
     "mcp:dev": "nodemon mcp-server.js",
     "mcp:sse": "node mcp-server-sse.js",
-    "mcp:sse:dev": "nodemon mcp-server-sse.js"
+    "mcp:sse:dev": "nodemon mcp-server-sse.js",
+    "mcp:http": "node mcp-server-http.js",
+    "mcp:http:dev": "nodemon mcp-server-http.js"
   },
   "author": "Chodeec (karlost)",
   "license": "MIT",
@@ -32,7 +35,9 @@
     "n8n",
     "sse",
     "server-sent-events",
-    "http"
+    "http",
+    "streamable-http",
+    "mcp-server"
   ],
   "engines": {
     "node": ">=18.0.0"
@@ -44,15 +49,18 @@
     "routes/",
     "utils/",
     "tools/",
+    "examples/",
     "mcp-server.js",
     "mcp-server-sse.js",
+    "mcp-server-http.js",
     "server.js",
     "LICENSE",
     "README.md",
-    "AI_GUIDE.md"
+    "AI_GUIDE.md",
+    "MIGRATION_HTTP.md"
   ],
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.9.0",
+    "@modelcontextprotocol/sdk": "^1.22.0",
     "axios": "^1.6.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",

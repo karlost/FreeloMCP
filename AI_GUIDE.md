@@ -4,14 +4,108 @@ This guide helps AI agents effectively use the Freelo MCP server's 98 tools to m
 
 ## Table of Contents
 
-1. [Quick Start Workflows](#quick-start-workflows)
-2. [Core Concepts](#core-concepts)
-3. [Common Workflows](#common-workflows)
-4. [Tool Selection Guide](#tool-selection-guide)
-5. [Data Flow Patterns](#data-flow-patterns)
-6. [Error Handling](#error-handling)
-7. [Performance Tips](#performance-tips)
-8. [Best Practices](#best-practices)
+1. [Transport Selection](#transport-selection)
+2. [Quick Start Workflows](#quick-start-workflows)
+3. [Core Concepts](#core-concepts)
+4. [Common Workflows](#common-workflows)
+5. [Tool Selection Guide](#tool-selection-guide)
+6. [Data Flow Patterns](#data-flow-patterns)
+7. [Error Handling](#error-handling)
+8. [Performance Tips](#performance-tips)
+9. [Best Practices](#best-practices)
+
+---
+
+## Transport Selection
+
+Freelo MCP Server supports three transport protocols. Choose the appropriate one based on your use case:
+
+### When to use Stdio Transport (`mcp-server.js`)
+
+**Use for:**
+- Claude Desktop application
+- Claude Code CLI
+- Cline (VS Code extension)
+- Windsurf, Zed, Continue.dev
+- Any CLI-based MCP client
+- Local development and testing
+
+**Characteristics:**
+- Communication via stdin/stdout
+- No HTTP server needed
+- Single client connection
+- Automatic process management by MCP client
+- Recommended for desktop tools
+
+**Configuration:**
+```json
+{
+  "command": "npx",
+  "args": ["-y", "freelo-mcp"],
+  "env": {
+    "FREELO_EMAIL": "your@email.cz",
+    "FREELO_API_KEY": "YOUR_KEY",
+    "FREELO_USER_AGENT": "FreeloMCP/2.4.0"
+  }
+}
+```
+
+### When to use Streamable HTTP Transport (`mcp-server-http.js`) ⭐ Recommended
+
+**Use for:**
+- n8n workflow automation
+- Web applications and APIs
+- Remote MCP access
+- ElevenLabs Agents
+- Modern HTTP-based integrations
+- Horizontal scaling scenarios
+- Multiple concurrent client connections
+
+**Characteristics:**
+- MCP-compliant HTTP protocol (2025-03-26)
+- Session management with UUIDs
+- RESTful endpoint: `/mcp/v1/endpoint`
+- Health monitoring: `/health`
+- Supports GET and POST requests
+- Scalable architecture
+
+**Start server:**
+```bash
+npm run mcp:http
+# or
+PORT=8080 npm run mcp:http
+```
+
+**HTTP Headers:**
+- `MCP-Protocol-Version: 2025-03-26`
+- `Accept: text/event-stream` (for GET)
+- `Mcp-Session-Id: <uuid>` (after init)
+
+### When to use SSE Transport (`mcp-server-sse.js`) ⚠️ Deprecated
+
+**Use only for:**
+- Legacy system migration
+- Existing SSE-based integrations
+- Temporary compatibility bridge
+
+**⚠️ WARNING:**
+- Deprecated since MCP spec 2025-03-26
+- Will be removed in v3.0.0
+- Migrate to Streamable HTTP transport
+- See [MIGRATION_HTTP.md](../MIGRATION_HTTP.md) for migration guide
+
+### Quick Decision Matrix
+
+| Your Use Case | Recommended Transport |
+|--------------|----------------------|
+| Using Claude Desktop/Code | **Stdio** |
+| Building n8n workflow | **Streamable HTTP** |
+| Web application integration | **Streamable HTTP** |
+| ElevenLabs Agents | **Streamable HTTP** |
+| Remote MCP server access | **Streamable HTTP** |
+| VS Code extension (Cline) | **Stdio** |
+| Self-hosted AI chat (LibreChat) | **Stdio** |
+| Legacy SSE integration | **Streamable HTTP** (migrate) |
 
 ---
 

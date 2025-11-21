@@ -3,12 +3,18 @@
 /**
  * Freelo MCP Server - SSE Transport
  *
+ * ⚠️  DEPRECATED: This SSE transport is deprecated and will be removed in v3.0.0
+ *     Please migrate to Streamable HTTP transport (mcp-server-http.js)
+ *     See MIGRATION_HTTP.md for migration guide
+ *
  * HTTP/SSE server pro vzdálený přístup k Freelo MCP tools.
  * Určeno pro n8n, webové klienty a další nástroje vyžadující HTTP přístup.
  *
  * Použití:
  *   node mcp-server-sse.js [port]
  *   PORT=8080 node mcp-server-sse.js
+ *
+ * @deprecated Use mcp-server-http.js (Streamable HTTP transport) instead
  */
 
 import express from 'express';
@@ -113,8 +119,20 @@ app.get('/health', (req, res) => {
 const PORT = process.env.PORT || process.argv[2] || 3000;
 
 app.listen(PORT, () => {
+  console.log(`\n⚠️  ═══════════════════════════════════════════════════════`);
+  console.log(`⚠️  DEPRECATION WARNING`);
+  console.log(`⚠️  ═══════════════════════════════════════════════════════`);
+  console.log(`⚠️  SSE transport is deprecated and will be removed in v3.0.0`);
+  console.log(`⚠️  Please migrate to Streamable HTTP transport:`);
+  console.log(`⚠️  `);
+  console.log(`⚠️    npm run mcp:http`);
+  console.log(`⚠️    OR: node mcp-server-http.js`);
+  console.log(`⚠️  `);
+  console.log(`⚠️  See MIGRATION_HTTP.md for migration guide`);
+  console.log(`⚠️  ═══════════════════════════════════════════════════════\n`);
+
   console.log(`╔════════════════════════════════════════════════════════╗`);
-  console.log(`║  Freelo MCP Server (SSE Transport)                    ║`);
+  console.log(`║  Freelo MCP Server (SSE Transport - DEPRECATED)       ║`);
   console.log(`╠════════════════════════════════════════════════════════╣`);
   console.log(`║  Server running on: http://localhost:${PORT.toString().padEnd(21)}║`);
   console.log(`║  SSE endpoint:      http://localhost:${PORT}/sse${' '.repeat(15)}║`);

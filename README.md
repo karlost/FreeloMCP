@@ -149,6 +149,89 @@ claude mcp add freelo-mcp \
   -- node /absolutni/cesta/k/FreeloMCP/mcp-server.js
 ```
 
+## 🚀 Transport Options
+
+Freelo MCP Server podporuje tři transportní protokoly:
+
+### 1. Stdio Transport (Default - CLI nástroje)
+
+Pro Claude Desktop, Claude Code, Cline a další CLI-based MCP klienty.
+
+**Použití:**
+```json
+{
+  "mcpServers": {
+    "freelo": {
+      "command": "npx",
+      "args": ["-y", "freelo-mcp"],
+      "env": {
+        "FREELO_EMAIL": "vas@email.cz",
+        "FREELO_API_KEY": "VAS_API_KLIC",
+        "FREELO_USER_AGENT": "FreeloMCP/2.4.0"
+      }
+    }
+  }
+}
+```
+
+### 2. Streamable HTTP Transport (⭐ Doporučeno pro HTTP klienty)
+
+Moderní MCP-compliant HTTP transport pro webové aplikace, n8n, ElevenLabs Agents a vzdálený přístup.
+
+**Spuštění HTTP serveru:**
+
+```bash
+# Základní použití
+npm run mcp:http
+
+# S vlastním portem
+PORT=8080 npm run mcp:http
+
+# Nebo přes npx
+PORT=8080 npx -y freelo-mcp-http
+```
+
+**Endpoint:** `http://localhost:3000/mcp/v1/endpoint`
+
+**Požadované HTTP headery:**
+- `MCP-Protocol-Version: 2025-03-26`
+- `Accept: text/event-stream` (pro GET requesty)
+- `Mcp-Session-Id: <session-id>` (po inicializaci)
+
+**Health check:** `GET http://localhost:3000/health`
+
+**Konfigurace prostředí:**
+```bash
+PORT=3000
+FREELO_EMAIL=vas@email.cz
+FREELO_API_KEY=VAS_API_KLIC
+FREELO_USER_AGENT=FreeloMCP/2.4.0
+```
+
+### 3. SSE Transport (⚠️ Deprecated)
+
+Legacy Server-Sent Events transport. **Používejte Streamable HTTP místo toho.**
+
+```bash
+npm run mcp:sse
+```
+
+**Endpoint:** `http://localhost:3000/sse`
+
+> ⚠️ **Upozornění:** SSE transport je deprecated od MCP specifikace 2025-03-26 a bude odstraněn ve v3.0.0. Migrujte na Streamable HTTP transport. Viz [MIGRATION_HTTP.md](MIGRATION_HTTP.md).
+
+## 📡 Srovnání transportů
+
+| Feature | Stdio | Streamable HTTP | SSE (Legacy) |
+|---------|-------|-----------------|--------------|
+| **Use Case** | CLI tools | HTTP/web clients | Legacy podpora |
+| **Status** | ✅ Aktivní | ✅ Doporučeno | ⚠️ Deprecated |
+| **Session Mgmt** | N/A | ✅ Ano | ✅ Ano |
+| **MCP Standard** | ✅ Ano | ✅ Ano (2025-03-26) | ❌ Starší spec |
+| **Endpoint** | stdio | `/mcp/v1/endpoint` | `/sse` |
+| **Protokol** | stdin/stdout | HTTP GET/POST | Server-Sent Events |
+| **Vhodné pro** | Desktop aplikace | n8n, web apps, remote | Migrace z legacy |
+
 ### Konfigurace pro další MCP klienty
 
 #### 3️⃣ Cline (VS Code Extension)
