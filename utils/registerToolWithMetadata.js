@@ -4,6 +4,49 @@
 
 import { getAnnotations, getToolTitle } from './toolAnnotations.js';
 
+// Detect array-style output schemas created by createArrayResponseSchema
+const isArrayOutputSchema = (schema) => Boolean(schema?._def?.freeloArrayResponse);
+
+/**
+ * Normalize tool results so they match the registered outputSchema.
+ * Structured content must always be an object, so array payloads are wrapped.
+ */
+const normalizeResultForOutputSchema = (result, outputSchema) => {
+  if (!outputSchema || !result || result.isError) {
+    return result;
+  }
+
+  const normalizedResult = { ...result };
+  const expectsArrayWrapper = isArrayOutputSchema(outputSchema);
+  let structuredContent = normalizedResult.structuredContent;
+
+  if (expectsArrayWrapper) {
+    if (Array.isArray(structuredContent)) {
+      structuredContent = { items: structuredContent };
+    } else if (structuredContent && typeof structuredContent === 'object' && !Array.isArray(structuredContent)) {
+      if (Array.isArray(structuredContent.items)) {
+        // Already normalized
+      } else if (Array.isArray(structuredContent.data)) {
+        structuredContent = { items: structuredContent.data };
+      }
+    }
+
+    if (!structuredContent || typeof structuredContent !== 'object' || Array.isArray(structuredContent)) {
+      structuredContent = { items: [] };
+    }
+  }
+
+  if (structuredContent) {
+    normalizedResult.structuredContent = structuredContent;
+  }
+
+  if ((!normalizedResult.content || normalizedResult.content.length === 0) && structuredContent) {
+    normalizedResult.content = [{ type: 'text', text: JSON.stringify(structuredContent, null, 2) }];
+  }
+
+  return normalizedResult;
+};
+
 /**
  * Registers a tool with automatic annotations based on tool name
  *
@@ -60,20 +103,13 @@ export function registerToolWithMetadata(
   // Get automatic title
   const autoTitle = getToolTitle(name);
 
-  // IMPORTANT: MCP SDK automatically calls z.object() on inputSchema and outputSchema
-  // If we pass z.object(...) directly, SDK will do z.object(z.object(...)) which breaks
-  // Solution: Extract .shape from ZodObject schemas to get the raw shape
+  // Input schemas can be passed either as raw shapes or Zod objects
   let processedInputSchema = inputSchema;
   let processedOutputSchema = options.outputSchema;
 
   // If inputSchema is a ZodObject, extract its shape
   if (inputSchema && typeof inputSchema === 'object' && inputSchema._def && inputSchema._def.typeName === 'ZodObject') {
     processedInputSchema = inputSchema.shape;
-  }
-
-  // If outputSchema is a ZodObject, extract its shape
-  if (processedOutputSchema && typeof processedOutputSchema === 'object' && processedOutputSchema._def && processedOutputSchema._def.typeName === 'ZodObject') {
-    processedOutputSchema = processedOutputSchema.shape;
   }
 
   // Build config object for registerTool
@@ -93,7 +129,14 @@ export function registerToolWithMetadata(
   }
 
   // Register the tool
-  return server.registerTool(name, config, callback);
+  return server.registerTool(
+    name,
+    config,
+    async (...cbArgs) => normalizeResultForOutputSchema(
+      await callback(...cbArgs),
+      processedOutputSchema
+    )
+  );
 }
 
 /**
