@@ -130,8 +130,8 @@ export const ProjectSchema = z.object({
   date_add: DateTimeSchema.optional(),
   date_edited_at: DateTimeSchema.optional(),
   tasklists: z.array(TasklistMinimalSchema).optional().describe('Active tasklists'),
-  client: ClientSchema.optional().describe('Client information'),
-  owner: UserMinimalSchema.optional().describe('Project owner'),
+  client: ClientSchema.optional().nullable().describe('Client information'),
+  owner: UserMinimalSchema.optional().nullable().describe('Project owner'),
   state: z.string().optional().describe('Project state'),
   currency_iso: z.enum(['CZK', 'EUR', 'USD']).optional().describe('Project currency')
 }).describe('Project object');
@@ -314,5 +314,11 @@ export function createSuccessResponseSchema(dataSchema) {
  * Array response
  */
 export function createArrayResponseSchema(itemSchema) {
-  return z.array(itemSchema).describe('Array response');
+  const schema = z.object({
+    items: z.array(itemSchema).describe('Items in the response')
+  }).describe('Array response');
+
+  // Mark schema so we can normalize structuredContent for array outputs
+  schema._def.freeloArrayResponse = true;
+  return schema;
 }
