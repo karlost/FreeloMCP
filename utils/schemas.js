@@ -282,6 +282,31 @@ export const NotificationSchema = z.object({
   author: UserMinimalSchema.optional()
 }).describe('Notification object');
 
+// ===== SEARCH RESULT SCHEMAS =====
+
+/**
+ * Search result object from Elasticsearch
+ */
+export const SearchResultSchema = z.object({
+  id: z.number().optional().describe('Entity ID'),
+  name: z.string().optional().describe('Entity name'),
+  type: z.string().optional().describe('Entity type (task, subtask, project, tasklist, file, comment)'),
+  project_id: z.number().optional().describe('Project ID'),
+  project_name: z.string().optional().describe('Project name'),
+  state: z.string().optional().describe('Entity state')
+}).passthrough().describe('Search result object');
+
+// ===== DOWNLOAD FILE SCHEMAS =====
+
+/**
+ * Download file response
+ */
+export const DownloadFileResponseSchema = z.object({
+  filename: z.string().describe('File name'),
+  contentType: z.string().describe('MIME content type'),
+  data: z.string().describe('Base64-encoded file content')
+}).describe('Downloaded file response');
+
 // ===== PAGINATED RESPONSE SCHEMAS =====
 
 /**

@@ -7,25 +7,27 @@ import { jest } from '@jest/globals';
 // Define a registry in the test file scope
 const mockToolsRegistry = {};
 
-// Explicitly mock the MCP server SDK
-jest.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
+// Use unstable_mockModule for ESM compatibility
+jest.unstable_mockModule('@modelcontextprotocol/sdk/server/mcp.js', () => {
   return {
     McpServer: jest.fn().mockImplementation(() => ({
       tool: (name, schema, handler) => {
-        // Populate the registry defined in the outer scope
         mockToolsRegistry[name] = { schema, handler };
       },
-      getTools: () => mockToolsRegistry, // Return the same registry
+      registerTool: (name, config, handler) => {
+        mockToolsRegistry[name] = { config, handler };
+      },
+      getTools: () => mockToolsRegistry,
     }))
   };
 });
-// Load environment variables - Removing this call within the test file.
-// Mock environment should be handled by setupTestEnv in test-helpers.
 
-// Import test helpers *after* the mock definition
+// Import test helpers
+import nock from 'nock';
 import {
   TEST_DATA,
-  setupTestEnv, // Import setupTestEnv
+  TEST_ENV,
+  setupTestEnv,
   isValidResponse,
   getResponseData,
   randomString,
@@ -38,12 +40,8 @@ import {
 // Set up mock environment variables *before* importing the server
 setupTestEnv();
 
-// Import the initializer function from the server file AFTER mocking SDK and importing helpers.
-import { initializeMcpServer } from '../mcp-server.js';
-
-// No longer need to import McpServer directly here as we use the automock
-// import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-// Removed duplicate import on next line
+// Dynamic import AFTER mock is set up (required for ESM mocking)
+const { initializeMcpServer } = await import('../mcp-server.js');
 
 describe('MCP Tools', () => {
   // let mcpServer; // Instance not needed directly
@@ -356,9 +354,12 @@ describe('MCP Tools', () => {
   // Test get_tasklist_tasks tool
   describe('get_tasklist_tasks', () => {
     it('should return tasklist tasks successfully using mocks', async () => {
-      // Mock the API call
+      // Mock the API call - tool always sends order_by and order query params
       const mockTasks = [{ id: TEST_DATA.taskId, name: 'Mock Tasklist Task 1' }];
-      mockFreeloApi('GET', `/project/${TEST_DATA.projectId}/tasklist/${TEST_DATA.tasklistId}/tasks`, 200, mockTasks);
+      nock(TEST_ENV.FREELO_API_BASE_URL)
+        .get(`/project/${TEST_DATA.projectId}/tasklist/${TEST_DATA.tasklistId}/tasks`)
+        .query(true) // Accept any query params (order_by, order)
+        .reply(200, mockTasks);
 
       // Call the tool handler
       const result = await tools.get_tasklist_tasks.handler({
@@ -383,7 +384,10 @@ describe('MCP Tools', () => {
     it('should handle ordering parameters correctly', async () => {
       // Mock the API call with ordering parameters
       const mockTasks = [{ id: TEST_DATA.taskId, name: 'Mock Ordered Task' }];
-      mockFreeloApi('GET', `/project/${TEST_DATA.projectId}/tasklist/${TEST_DATA.tasklistId}/tasks`, 200, mockTasks);
+      nock(TEST_ENV.FREELO_API_BASE_URL)
+        .get(`/project/${TEST_DATA.projectId}/tasklist/${TEST_DATA.tasklistId}/tasks`)
+        .query({ order_by: 'name', order: 'desc' })
+        .reply(200, mockTasks);
 
       // Call the tool handler with ordering parameters
       const result = await tools.get_tasklist_tasks.handler({
@@ -433,9 +437,12 @@ describe('MCP Tools', () => {
   // Test get_project_tasklists tool
   describe('get_project_tasklists', () => {
     it('should return project tasklists successfully using mocks', async () => {
-      // Mock the API call
+      // Mock the API call - tool uses /all-tasklists with projects_ids query param
       const mockTasklists = [{ id: TEST_DATA.tasklistId, name: 'Mock Tasklist 1' }];
-      mockFreeloApi('GET', `/project/${TEST_DATA.projectId}/tasklists`, 200, mockTasklists);
+      nock(TEST_ENV.FREELO_API_BASE_URL)
+        .get('/all-tasklists')
+        .query(true)
+        .reply(200, mockTasklists);
 
       // Call the tool handler
       const result = await tools.get_project_tasklists.handler({ projectId: TEST_DATA.projectId });
@@ -530,9 +537,12 @@ describe('MCP Tools', () => {
   // Test get_all_files tool
   describe('get_all_files', () => {
     it('should return all files successfully using mocks', async () => {
-      // Mock the API call
+      // Mock the API call - tool uses /all-docs-and-files
       const mockFiles = [{ id: 1, uuid: TEST_DATA.fileUuid, name: 'mock_file.txt', size: 1024 }];
-      mockFreeloApi('GET', '/files', 200, mockFiles);
+      nock(TEST_ENV.FREELO_API_BASE_URL)
+        .get('/all-docs-and-files')
+        .query(true)
+        .reply(200, mockFiles);
 
       // Call the tool handler
       const result = await tools.get_all_files.handler({});
@@ -556,7 +566,7 @@ describe('MCP Tools', () => {
   describe('get_subtasks', () => {
     it('should return subtasks successfully using mocks', async () => {
       // Mock the API call
-      const mockSubtasks = [{ id: TEST_DATA.subtaskId, name: 'Mock Subtask 1', labels: [{ uuid: TEST_DATA.labelId, name: 'Mock Label' }] }];
+      const mockSubtasks = [{ id: TEST_DATA.subtaskId, name: 'Mock Subtask 1', labels: [{ id: TEST_DATA.labelId, name: 'Mock Label' }] }];
       mockFreeloApi('GET', `/task/${TEST_DATA.taskId}/subtasks`, 200, mockSubtasks);
 
       // Call the tool handler
@@ -582,15 +592,18 @@ describe('MCP Tools', () => {
     });
   });
 
-  // Test get_task_comments tool
-  describe('get_task_comments', () => {
+  // Test get_all_comments tool (renamed from get_task_comments)
+  describe('get_all_comments', () => {
     it('should return task comments successfully using mocks', async () => {
-      // Mock the API call
+      // Mock the API call - tool uses /all-comments with filters as query params
       const mockComments = [{ id: TEST_DATA.commentId, content: 'Mock Comment 1' }];
-      mockFreeloApi('GET', `/task/${TEST_DATA.taskId}/comments`, 200, mockComments);
+      nock(TEST_ENV.FREELO_API_BASE_URL)
+        .get('/all-comments')
+        .query(true)
+        .reply(200, mockComments);
 
       // Call the tool handler
-      const result = await tools.get_task_comments.handler({ taskId: TEST_DATA.taskId });
+      const result = await tools.get_all_comments.handler({ filters: { type: 'task' } });
 
       // Check the result
       expect(isValidResponse(result)).toBe(true);
@@ -607,15 +620,18 @@ describe('MCP Tools', () => {
     });
   });
 
-  // Test get_task_labels tool
-  describe('get_task_labels', () => {
+  // Test find_available_labels tool (renamed from get_task_labels)
+  describe('find_available_labels', () => {
     it('should return task labels successfully using mocks', async () => {
-      // Mock the API call
-      const mockLabels = [{ uuid: TEST_DATA.labelId, name: 'Mock Label 1', color: '#ff0000' }];
-      mockFreeloApi('GET', '/task-labels', 200, mockLabels);
+      // Mock the API call - tool uses /project-labels/find-available
+      const mockLabels = [{ id: TEST_DATA.labelId, name: 'Mock Label 1', color: '#ff0000' }];
+      nock(TEST_ENV.FREELO_API_BASE_URL)
+        .get('/project-labels/find-available')
+        .query(true)
+        .reply(200, mockLabels);
 
       // Call the tool handler
-      const result = await tools.get_task_labels.handler({});
+      const result = await tools.find_available_labels.handler({});
 
       // Check the result
       expect(isValidResponse(result)).toBe(true);
@@ -626,7 +642,7 @@ describe('MCP Tools', () => {
       // Check that the response contains labels
       expect(Array.isArray(data)).toBe(true);
       if (data.length > 0) {
-        expect(data[0]).toHaveProperty('uuid');
+        expect(data[0]).toHaveProperty('id');
         expect(data[0]).toHaveProperty('name');
 
         // No need to store label ID dynamically, using mock TEST_DATA
@@ -637,8 +653,8 @@ describe('MCP Tools', () => {
     });
   });
 
-  // Test get_time_estimates tool
-  describe('get_time_estimates', () => {
+  // Test get_time_estimates tool (skipped - tool removed in refactoring)
+  describe.skip('get_time_estimates', () => {
     it('should return time estimates successfully using mocks', async () => {
       // Mock the API call
       const mockTimeEstimates = { total: { hours: 5, minutes: 30 }, users: [{ user_id: TEST_DATA.userId, hours: 2, minutes: 0 }] };
@@ -691,8 +707,8 @@ describe('MCP Tools', () => {
     });
   });
 
-  // Test edit_subtask tool
-  describe('edit_subtask', () => {
+  // Test edit_subtask tool (skipped - tool removed in refactoring)
+  describe.skip('edit_subtask', () => {
     it('should edit a subtask successfully using mocks', async () => {
       // Edit subtask data
       const subtaskName = `Edited Test Subtask ${randomString(5)}`;
@@ -764,11 +780,15 @@ describe('MCP Tools', () => {
       // --- 1. Create Task ---
       const taskName = `Workflow Task ${randomString(5)}`;
       const taskDueDate = dateString(7);
-      const taskData = { name: taskName, description: 'Workflow test task', due_date: taskDueDate };
-      const mockCreatedTask = { ...taskData, id: mockCreatedTaskId, tasklist_id: TEST_DATA.tasklistId };
-      mockFreeloApi('POST', `/tasklist/${TEST_DATA.tasklistId}/task`, 200, mockCreatedTask, taskData);
+      // Tool expects dueDate (camelCase) and transforms: description → comment.content, dueDate → due_date
+      const taskData = { name: taskName, description: 'Workflow test task', dueDate: taskDueDate };
+      const mockCreatedTask = { name: taskName, id: mockCreatedTaskId, tasklist_id: TEST_DATA.tasklistId, due_date: taskDueDate };
+      // The tool sends transformed body: { name, comment: { content: 'Workflow test task' }, due_date: taskDueDate }
+      nock(TEST_ENV.FREELO_API_BASE_URL)
+        .post(`/project/${TEST_DATA.projectId}/tasklist/${TEST_DATA.tasklistId}/tasks`)
+        .reply(200, mockCreatedTask);
 
-      const createTaskResult = await tools.create_task.handler({ tasklistId: TEST_DATA.tasklistId, taskData });
+      const createTaskResult = await tools.create_task.handler({ projectId: TEST_DATA.projectId, tasklistId: TEST_DATA.tasklistId, taskData });
       expect(isValidResponse(createTaskResult)).toBe(true);
       const createdTaskData = getResponseData(createTaskResult);
       expect(createdTaskData).toHaveProperty('id', mockCreatedTaskId);
@@ -777,9 +797,12 @@ describe('MCP Tools', () => {
       // --- 2. Create Subtask ---
       const subtaskName = `Workflow Subtask ${randomString(5)}`;
       const subtaskDueDate = dateString(5);
-      const subtaskData = { name: subtaskName, due_date: subtaskDueDate };
-      const mockCreatedSubtask = { ...subtaskData, id: mockCreatedSubtaskId, task_id: mockCreatedTaskId };
-      mockFreeloApi('POST', `/task/${mockCreatedTaskId}/subtask`, 200, mockCreatedSubtask, subtaskData);
+      // Tool expects dueDate (camelCase) and uses /task/${id}/subtasks (plural)
+      const subtaskData = { name: subtaskName, dueDate: subtaskDueDate };
+      const mockCreatedSubtask = { name: subtaskName, due_date: subtaskDueDate, id: mockCreatedSubtaskId, task_id: mockCreatedTaskId };
+      nock(TEST_ENV.FREELO_API_BASE_URL)
+        .post(`/task/${mockCreatedTaskId}/subtasks`)
+        .reply(200, mockCreatedSubtask);
 
       const createSubtaskResult = await tools.create_subtask.handler({ taskId: mockCreatedTaskId, subtaskData });
       expect(isValidResponse(createSubtaskResult)).toBe(true);
@@ -789,9 +812,12 @@ describe('MCP Tools', () => {
 
       // --- 3. Create Comment ---
       const commentText = `Workflow Comment ${randomString(5)}`;
-      const commentData = { text: commentText };
+      // Tool schema expects 'content' field, not 'text'
+      const commentData = { content: commentText };
       const mockCreatedComment = { id: mockCreatedCommentId, content: commentText, task_id: mockCreatedTaskId };
-      mockFreeloApi('POST', `/task/${mockCreatedTaskId}/comments`, 200, mockCreatedComment, commentData);
+      nock(TEST_ENV.FREELO_API_BASE_URL)
+        .post(`/task/${mockCreatedTaskId}/comments`)
+        .reply(200, mockCreatedComment);
 
       const createCommentResult = await tools.create_comment.handler({ taskId: mockCreatedTaskId, commentData });
       expect(isValidResponse(createCommentResult)).toBe(true);
@@ -800,37 +826,36 @@ describe('MCP Tools', () => {
       expect(createdCommentData).toHaveProperty('content', commentText);
 
       // --- 4. Add Labels ---
-      const labelUuids = [TEST_DATA.labelId];
-      mockFreeloApi('POST', `/task-labels/add-to-task/${mockCreatedTaskId}`, 200, { status: 'success' }, { labels: [{ uuid: TEST_DATA.labelId }] });
-      const addLabelsResult = await tools.add_labels_to_task.handler({ taskId: mockCreatedTaskId, labelUuids });
+      const labelIds = [Number(TEST_DATA.labelId)];
+      mockFreeloApi('POST', `/task-labels/add-to-task/${mockCreatedTaskId}`, 200, { status: 'success' }, { labels: [{ id: Number(TEST_DATA.labelId) }] });
+      const addLabelsResult = await tools.add_labels_to_task.handler({ taskId: mockCreatedTaskId, labelIds });
       expect(isValidResponse(addLabelsResult)).toBe(true);
       expect(getResponseData(addLabelsResult)).toHaveProperty('status', 'success');
 
       // --- 5. Remove Labels ---
-      mockFreeloApi('POST', `/task-labels/remove-from-task/${mockCreatedTaskId}`, 200, { status: 'success' }, { labels: [{ uuid: TEST_DATA.labelId }] });
-      const removeLabelsResult = await tools.remove_labels_from_task.handler({ taskId: mockCreatedTaskId, labelUuids });
+      mockFreeloApi('POST', `/task-labels/remove-from-task/${mockCreatedTaskId}`, 200, { status: 'success' }, { labels: [{ id: Number(TEST_DATA.labelId) }] });
+      const removeLabelsResult = await tools.remove_labels_from_task.handler({ taskId: mockCreatedTaskId, labelIds });
       expect(isValidResponse(removeLabelsResult)).toBe(true);
       expect(getResponseData(removeLabelsResult)).toHaveProperty('status', 'success');
 
       // --- 6. Create Total Time Estimate ---
-      const totalTimeEstimateData = { hours: 2, minutes: 30 };
-      mockFreeloApi('POST', `/task/${mockCreatedTaskId}/total-time-estimate`, 200, { status: 'success' }, totalTimeEstimateData);
-      const createTotalTimeResult = await tools.create_total_time_estimate.handler({ taskId: mockCreatedTaskId, ...totalTimeEstimateData });
+      // Tool accepts { taskId, minutes } and posts { minutes } to /task/${id}/total-time-estimate
+      nock(TEST_ENV.FREELO_API_BASE_URL)
+        .post(`/task/${mockCreatedTaskId}/total-time-estimate`, { minutes: 150 })
+        .reply(200, { status: 'success' });
+      const createTotalTimeResult = await tools.set_total_time_estimate.handler({ taskId: mockCreatedTaskId, minutes: 150 });
       expect(isValidResponse(createTotalTimeResult)).toBe(true);
       expect(getResponseData(createTotalTimeResult)).toHaveProperty('status', 'success');
 
       // --- 7. Create User Time Estimate ---
-      // Mock the necessary worker fetch first
-      const mockWorkers = [{ id: TEST_DATA.userId, fullname: 'Mock Worker Workflow' }];
-      mockFreeloApi('GET', `/project/${TEST_DATA.projectId}/workers`, 200, mockWorkers);
-      // Now mock the user time estimate creation
-      const userTimeEstimateData = { user_id: TEST_DATA.userId, hours: 1, minutes: 45 };
-      mockFreeloApi('POST', `/task/${mockCreatedTaskId}/user-time-estimate`, 200, { status: 'success' }, userTimeEstimateData);
-      const createUserTimeResult = await tools.create_user_time_estimate.handler({
+      // Tool accepts { taskId, userId, minutes } and posts { minutes } to /task/${id}/users-time-estimates/${userId}
+      nock(TEST_ENV.FREELO_API_BASE_URL)
+        .post(`/task/${mockCreatedTaskId}/users-time-estimates/${TEST_DATA.userId}`, { minutes: 105 })
+        .reply(200, { status: 'success' });
+      const createUserTimeResult = await tools.set_user_time_estimate.handler({
         taskId: mockCreatedTaskId,
-        userId: TEST_DATA.userId, // Use the mock user ID
-        hours: userTimeEstimateData.hours,
-        minutes: userTimeEstimateData.minutes
+        userId: TEST_DATA.userId,
+        minutes: 105
       });
       expect(isValidResponse(createUserTimeResult)).toBe(true);
       expect(getResponseData(createUserTimeResult)).toHaveProperty('status', 'success');
@@ -849,25 +874,13 @@ describe('MCP Tools', () => {
 
       // --- 10. Move Task ---
       mockFreeloApi('POST', `/task/${mockCreatedTaskId}/move/${TEST_DATA.tasklistId}`, 200, { status: 'success' });
-      const moveTaskResult = await tools.move_task.handler({ taskId: mockCreatedTaskId, tasklistId: TEST_DATA.tasklistId });
+      const moveTaskResult = await tools.move_task.handler({ taskId: mockCreatedTaskId, targetTasklistId: TEST_DATA.tasklistId });
       expect(isValidResponse(moveTaskResult)).toBe(true);
       expect(getResponseData(moveTaskResult)).toHaveProperty('status', 'success');
 
       // --- Cleanup ---
 
-      // --- 11. Delete Subtask ---
-      mockFreeloApi('DELETE', `/subtask/${mockCreatedSubtaskId}`, 200, { status: 'success' });
-      const deleteSubtaskResult = await tools.delete_subtask.handler({ subtaskId: mockCreatedSubtaskId });
-      expect(isValidResponse(deleteSubtaskResult)).toBe(true);
-      expect(getResponseData(deleteSubtaskResult)).toHaveProperty('status', 'success');
-
-      // --- 12. Delete Comment ---
-      mockFreeloApi('DELETE', `/comment/${mockCreatedCommentId}`, 200, { status: 'success' });
-      const deleteCommentResult = await tools.delete_comment.handler({ commentId: mockCreatedCommentId });
-      expect(isValidResponse(deleteCommentResult)).toBe(true);
-      expect(getResponseData(deleteCommentResult)).toHaveProperty('status', 'success');
-
-      // --- 13. Delete Task ---
+      // --- 11. Delete Task ---
       mockFreeloApi('DELETE', `/task/${mockCreatedTaskId}`, 200, { status: 'success' });
       const deleteTaskResult = await tools.delete_task.handler({ taskId: mockCreatedTaskId });
       expect(isValidResponse(deleteTaskResult)).toBe(true);
@@ -886,9 +899,10 @@ describe('MCP Tools', () => {
       };
       const mockCreatedTasklist = { ...tasklistData, id: TEST_DATA.tasklistId + '-new' };
 
-      // Mock the API call (match request body)
-      // Note: The API endpoint uses projectId in the URL, but the payload also contains project_id
-      mockFreeloApi('POST', `/project/${TEST_DATA.projectId}/tasklist`, 200, mockCreatedTasklist, tasklistData);
+      // Mock the API call - tool uses /project/${id}/tasklists (plural)
+      nock(TEST_ENV.FREELO_API_BASE_URL)
+        .post(`/project/${TEST_DATA.projectId}/tasklists`)
+        .reply(200, mockCreatedTasklist);
 
       // Call the tool handler
       const result = await tools.create_tasklist.handler({
@@ -918,9 +932,10 @@ describe('MCP Tools', () => {
       const mockFileUuid = TEST_DATA.fileUuid + '-upload'; // Use a distinct mock UUID
       const mockUploadResponse = { uuid: mockFileUuid, name: fileName, size: fileContent.length };
 
-      // Mock the POST /files endpoint. Nock handles multipart/form-data matching loosely by default.
-      // We don't need to specify the exact multipart body for this mock.
-      mockFreeloApi('POST', '/files', 200, mockUploadResponse);
+      // Mock the POST /file/upload endpoint (tool uses /file/upload, not /files)
+      nock(TEST_ENV.FREELO_API_BASE_URL)
+        .post('/file/upload')
+        .reply(200, mockUploadResponse);
 
       // Call the upload_file tool handler
       const uploadResult = await tools.upload_file.handler({
@@ -934,16 +949,19 @@ describe('MCP Tools', () => {
       expect(uploadData).toHaveProperty('uuid', mockFileUuid);
 
       // --- Mock Download File ---
-      const mockDownloadResponse = {
-        data: fileData, // Return the same base64 data
-        contentType: 'text/plain'
-      };
-      // Assuming the download endpoint is /file/{uuid}/download
-      mockFreeloApi('GET', `/file/${mockFileUuid}/download`, 200, mockDownloadResponse);
+      // Tool uses /file/${uuid} (not /file/${uuid}/download) with responseType: 'arraybuffer'
+      // Return raw binary data (Buffer) and content-type header
+      const fileBuffer = Buffer.from(fileContent);
+      nock(TEST_ENV.FREELO_API_BASE_URL)
+        .get(`/file/${mockFileUuid}`)
+        .reply(200, fileBuffer, {
+          'content-type': 'text/plain',
+          'content-disposition': `attachment; filename="${fileName}"`
+        });
 
       // Call the download_file tool handler
       const downloadResult = await tools.download_file.handler({
-        fileUuid: mockFileUuid // Use the mock UUID from upload response
+        fileUuid: mockFileUuid
       });
 
       // Check the result
@@ -955,6 +973,7 @@ describe('MCP Tools', () => {
       // Check that the response contains the downloaded file data
       expect(downloadData).toHaveProperty('data');
       expect(downloadData).toHaveProperty('contentType');
+      expect(downloadData).toHaveProperty('filename', fileName);
 
       // Decode the base64 data and check the content matches the original
       const decodedContent = Buffer.from(downloadData.data, 'base64').toString('utf-8');

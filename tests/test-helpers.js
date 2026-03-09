@@ -11,7 +11,7 @@ export const TEST_DATA = {
   taskId: 'mockTaskId789',
   subtaskId: 'mockSubtaskId101',
   commentId: 'mockCommentId112',
-  labelId: 'mockLabelUuid131', // Use a mock UUID
+  labelId: 28131, // Numeric label ID (Freelo uses numeric IDs for labels)
   userId: 'mockUserId141',
   fileUuid: 'mockFileUuid151'
 };
@@ -21,7 +21,7 @@ export const TEST_ENV = {
   FREELO_EMAIL: 'mock@example.com',
   FREELO_API_KEY: 'mockApiKeyAbc123',
   FREELO_USER_AGENT: 'freelo-mcp-test-agent',
-  FREELO_API_BASE_URL: 'https://api.freelo.cz/v1' // Define base URL for mocking
+  FREELO_API_BASE_URL: 'https://api.freelo.io/v1' // Define base URL for mocking
 };
 
 // --- Nock Setup ---
@@ -59,8 +59,12 @@ export function cleanupNock() {
  */
 export function mockFreeloApi(method, path, statusCode, responseBody, requestBody = undefined, options = {}) {
   const scope = nock(TEST_ENV.FREELO_API_BASE_URL)
-    .matchHeader('X-Freelo-Api-Key', TEST_ENV.FREELO_API_KEY) // Ensure API key header is matched
-    .matchHeader('User-Agent', TEST_ENV.FREELO_USER_AGENT); // Ensure User-Agent header is matched
+    .matchHeader('Authorization', function(val) {
+      return val !== undefined; // Check that Authorization header exists (Basic auth)
+    })
+    .matchHeader('User-Agent', function(val) {
+      return val !== undefined; // Check that User-Agent header exists
+    });
 
   const interceptor = scope[method.toLowerCase()](path, requestBody);
 
@@ -143,10 +147,16 @@ export function getResponseData(response) {
   if (!isValidResponse(response)) {
     throw new Error('Invalid response');
   }
-  
+
   // The last item in the content array should be the JSON data
   const jsonText = response.content[response.content.length - 1].text;
-  return JSON.parse(jsonText);
+  const parsed = JSON.parse(jsonText);
+
+  // formatResponse wraps arrays in { items: [...] } — unwrap for test compatibility
+  if (parsed && parsed.items && Array.isArray(parsed.items)) {
+    return parsed.items;
+  }
+  return parsed;
 }
 
 /**

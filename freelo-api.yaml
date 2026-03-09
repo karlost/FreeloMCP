@@ -1,0 +1,4692 @@
+openapi: 3.0.3
+info:
+  title: Freelo API
+  description: |
+    API documentation for [Freelo.io](https://www.freelo.io) - Project Management Tool.
+    
+    ## Request Format
+    All requests point to URL that begins with `https://api.freelo.io/v1/`.
+    Each request must include a `User-Agent` HTTP header.
+    
+    ### Example: Projects List
+    ```bash
+    curl -u your@email.tld:API_KEY -H 'User-Agent: Your_App_Id (email@company.tld)' \
+        https://api.freelo.io/v1/projects
+    ```
+    
+    ## Response Format
+    The API only supports JSON format in UTF-8 encoding.
+    
+    ## Authentication
+    Authentication is done using HTTP Basic Authentication. Use your email as username and API key as password.
+    You can find the API key in [settings](https://app.freelo.io/profil/nastaveni).
+    
+    ## Rate Limiting
+    You can perform up to 25 requests per minute. If you exceed this limit, 429 Too Many Requests HTTP status code will be returned.
+    You have to wait at least 60 seconds before sending another request.
+    
+    ## Currencies Format
+    All currency amounts must be strings with exactly 2 decimal places multiplied by 100.
+    
+    Supported currencies: CZK, EUR, USD
+    
+    Examples:
+    - `1,000.25` = `"100025"`
+    - `1,000` = `"100000"`
+    - `1` = `"100"`
+    
+    ## Pagination
+    Pages are set via GET parameter `p` starting from 0.
+    
+    ## Ordering
+    Use `order_by` and `order` (asc/desc) parameters where supported.
+
+  version: "1.0.0"
+  contact:
+    name: Freelo Support
+    url: https://www.freelo.io
+
+servers:
+  - url: "https://api.freelo.io/v1"
+    description: "Production server"
+
+security:
+  - basicAuth: []
+
+tags:
+  - name: Projects
+    description: Project management operations
+  - name: Project Labels
+    description: Project label management
+  - name: Pinned Items
+    description: Pinned items in projects
+  - name: Tasklists
+    description: Tasklist operations
+  - name: Tasks
+    description: Task management
+  - name: Subtasks
+    description: Subtask operations
+  - name: Task Labels
+    description: Task label management
+  - name: Comments
+    description: Comment operations
+  - name: Time Tracking
+    description: Time tracking operations
+  - name: Work Reports
+    description: Work report management
+  - name: Invoicing
+    description: Invoice operations
+  - name: Users
+    description: User management
+  - name: Notifications
+    description: Notification operations
+  - name: Events
+    description: Event operations
+  - name: Files
+    description: File operations
+  - name: States
+    description: State definitions
+  - name: Custom Fields
+    description: Custom field management
+  - name: Notes
+    description: Note operations
+  - name: Search
+    description: Search operations
+
+paths:
+  # ==================== PROJECTS ====================
+  /projects:
+    get:
+      tags:
+        - Projects
+      summary: Get all own active projects
+      description: Collection of all own (active) projects including active tasklists
+      operationId: getProjects
+      parameters:
+        - name: order_by
+          in: query
+          description: Order column
+          schema:
+            type: string
+            enum: [name, date_add, date_edited_at]
+            default: name
+        - name: order
+          in: query
+          description: Order direction
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectWithTasklists'
+    post:
+      tags:
+        - Projects
+      summary: Create project
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - currency_iso
+              properties:
+                name:
+                  type: string
+                  example: "Vegetable growing"
+                currency_iso:
+                  type: string
+                  enum: [CZK, EUR, USD]
+                project_owner_id:
+                  type: integer
+                  description: ID of user assigned as owner
+      responses:
+        '200':
+          description: Project created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectBasic'
+
+  /all-projects:
+    get:
+      tags:
+        - Projects
+      summary: Get all projects (owned and invited)
+      description: Paginated collection of all (owned and invited) projects
+      operationId: getAllProjects
+      parameters:
+        - name: order_by
+          in: query
+          schema:
+            type: string
+            enum: [name, date_add, date_edited_at]
+            default: date_add
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+        - name: tags[]
+          in: query
+          description: Filter by tags. Use "without" to get projects without tags.
+          schema:
+            type: array
+            items:
+              type: string
+        - name: states_ids[]
+          in: query
+          description: "Project states: 1=active, 2=archived, 3=template"
+          schema:
+            type: array
+            items:
+              type: integer
+              enum: [1, 2, 3]
+        - name: users_ids[]
+          in: query
+          description: Filter by project owner IDs
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: created_in_range[date_from]
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: created_in_range[date_to]
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/PageParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          projects:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/ProjectFull'
+
+  /invited-projects:
+    get:
+      tags:
+        - Projects
+      summary: Get invited projects
+      description: Paginated collection of all invited projects
+      operationId: getInvitedProjects
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          invited_projects:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/ProjectWithTasklists'
+
+  /archived-projects:
+    get:
+      tags:
+        - Projects
+      summary: Get archived projects
+      description: Paginated collection of all archived projects
+      operationId: getArchivedProjects
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          archived_projects:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/ProjectWithTasklists'
+
+  /template-projects:
+    get:
+      tags:
+        - Projects
+      summary: Get template projects
+      description: Paginated collection of all template projects
+      operationId: getTemplateProjects
+      parameters:
+        - name: order_by
+          in: query
+          schema:
+            type: string
+            enum: [name, date_add, date_edited_at]
+            default: date_add
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+        - name: tags[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+        - name: users_ids[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: created_in_range[date_from]
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: created_in_range[date_to]
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/PageParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          template_projects:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/ProjectWithTasklists'
+
+  /user/{user_id}/all-projects:
+    get:
+      tags:
+        - Projects
+      summary: Get user's projects
+      description: Paginated collection of user's projects
+      operationId: getUserProjects
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: states_ids[]
+          in: query
+          description: "States: 1=active, 2=archived, 3=template"
+          schema:
+            type: array
+            items:
+              type: integer
+              enum: [1, 2, 3]
+        - name: order_by
+          in: query
+          schema:
+            type: string
+            enum: [name, date_add, date_edited_at]
+            default: date_add
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - $ref: '#/components/parameters/PageParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          projects:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/ProjectFull'
+
+  /project/{project_id}:
+    get:
+      tags:
+        - Projects
+      summary: Get project
+      operationId: getProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectDetail'
+    delete:
+      tags:
+        - Projects
+      summary: Delete project
+      operationId: deleteProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /project/{project_id}/workers:
+    get:
+      tags:
+        - Projects
+      summary: Get project workers
+      description: Paginated collection of all project workers
+      operationId: getProjectWorkers
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdParam'
+        - $ref: '#/components/parameters/PageParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          workers:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/UserBasic'
+
+  /project/{project_id}/archive:
+    post:
+      tags:
+        - Projects
+      summary: Archive project
+      operationId: archiveProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /project/{project_id}/activate:
+    post:
+      tags:
+        - Projects
+      summary: Activate project
+      operationId: activateProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /project/{project_id}/remove-workers/by-ids:
+    post:
+      tags:
+        - Projects
+      summary: Remove project workers by IDs
+      operationId: removeProjectWorkersByIds
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - users_ids
+              properties:
+                users_ids:
+                  type: array
+                  items:
+                    type: integer
+                  example: [305, 150, 820]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /project/{project_id}/remove-workers/by-emails:
+    post:
+      tags:
+        - Projects
+      summary: Remove project workers by emails
+      operationId: removeProjectWorkersByEmails
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - users_emails
+              properties:
+                users_emails:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+                  example: ["user1@freelo.io", "user2@freelo.io"]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /project/create-from-template/{template_id}:
+    post:
+      tags:
+        - Projects
+      summary: Create project from template
+      operationId: createProjectFromTemplate
+      parameters:
+        - name: template_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                project_owner_id:
+                  type: integer
+                currency_iso:
+                  type: string
+                  enum: [CZK, EUR, USD]
+                preset_date_from:
+                  type: string
+                  format: date
+                  description: Date to set floating due dates in templates
+                general_settings:
+                  type: object
+                  properties:
+                    layout:
+                      type: string
+                      enum: [rows, kanban]
+                      default: rows
+                users_ids:
+                  type: array
+                  items:
+                    type: integer
+                  description: Users from template to invite
+      responses:
+        '200':
+          description: Project created from template
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  owner:
+                    $ref: '#/components/schemas/UserBasic'
+                  currency_iso:
+                    type: string
+
+  # ==================== PROJECT LABELS ====================
+  /project-labels/find-available:
+    get:
+      tags:
+        - Project Labels
+      summary: Find available project labels
+      operationId: findAvailableProjectLabels
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  label:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProjectLabel'
+
+  /project-labels/{labelId}:
+    post:
+      tags:
+        - Project Labels
+      summary: Edit project label
+      operationId: editProjectLabel
+      parameters:
+        - name: labelId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                color:
+                  type: string
+                  pattern: '^#[0-9a-fA-F]{6}$'
+                is_private:
+                  type: boolean
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+    delete:
+      tags:
+        - Project Labels
+      summary: Delete project label
+      operationId: deleteProjectLabel
+      parameters:
+        - name: labelId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /project-labels/add-to-project/{projectId}:
+    post:
+      tags:
+        - Project Labels
+      summary: Add project label to project
+      operationId: addProjectLabelToProject
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                color:
+                  type: string
+                is_private:
+                  type: boolean
+                id:
+                  type: integer
+                  description: ID of existing label
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /project-labels/remove-from-project/{projectId}:
+    post:
+      tags:
+        - Project Labels
+      summary: Remove project label from project
+      operationId: removeProjectLabelFromProject
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                color:
+                  type: string
+                is_private:
+                  type: boolean
+                id:
+                  type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==================== PINNED ITEMS ====================
+  /project/{project_id}/pinned-items:
+    get:
+      tags:
+        - Pinned Items
+      summary: Get pinned items in project
+      operationId: getPinnedItems
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PinnedItem'
+    post:
+      tags:
+        - Pinned Items
+      summary: Pin item to project
+      operationId: pinItemToProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - link
+              properties:
+                link:
+                  type: string
+                  format: uri
+                title:
+                  type: string
+      responses:
+        '200':
+          description: Item pinned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PinnedItem'
+
+  /pinned-item/{pinned_item_id}:
+    delete:
+      tags:
+        - Pinned Items
+      summary: Delete pinned item
+      operationId: deletePinnedItem
+      parameters:
+        - name: pinned_item_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==================== TASKLISTS ====================
+  /project/{project_id}/tasklists:
+    post:
+      tags:
+        - Tasklists
+      summary: Create tasklist
+      operationId: createTasklist
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                budget:
+                  type: string
+                  description: Currency amount (2 decimal places, no separator)
+      responses:
+        '200':
+          description: Tasklist created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TasklistWithBudget'
+
+  /all-tasklists:
+    get:
+      tags:
+        - Tasklists
+      summary: Get all tasklists
+      description: Paginated collection of all tasklists
+      operationId: getAllTasklists
+      parameters:
+        - name: projects_ids[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: order_by
+          in: query
+          schema:
+            type: string
+            enum: [name, date_add, date_edited_at]
+            default: date_add
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+        - $ref: '#/components/parameters/PageParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          tasklists:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/TasklistFull'
+
+  /project/{project_id}/tasklist/{tasklist_id}/assignable-workers:
+    get:
+      tags:
+        - Tasklists
+      summary: Get assignable workers for tasklist
+      operationId: getAssignableWorkers
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdParam'
+        - $ref: '#/components/parameters/TasklistIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserBasic'
+
+  /tasklist/{tasklist_id}:
+    get:
+      tags:
+        - Tasklists
+      summary: Get tasklist
+      operationId: getTasklist
+      parameters:
+        - $ref: '#/components/parameters/TasklistIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TasklistDetail'
+
+  /tasklist/create-from-template/{template_id}:
+    post:
+      tags:
+        - Tasklists
+      summary: Create tasklist from template
+      operationId: createTasklistFromTemplate
+      parameters:
+        - name: template_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - tasklist_id
+              properties:
+                tasklist_id:
+                  type: integer
+                  description: ID of the tasklist from template
+                target_project_id:
+                  type: integer
+                target_tasklist_id:
+                  type: integer
+                preset_date_from:
+                  type: string
+                  format: date
+                users_ids:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Tasklist created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  tasks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+
+  # ==================== TASKS ====================
+  /project/{project_id}/tasklist/{tasklist_id}/tasks:
+    get:
+      tags:
+        - Tasks
+      summary: Get tasks in tasklist
+      operationId: getTasksInTasklist
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdParam'
+        - $ref: '#/components/parameters/TasklistIdParam'
+        - name: order_by
+          in: query
+          schema:
+            type: string
+            enum: [priority, name, date_add, date_edited_at]
+            default: priority
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskSummary'
+    post:
+      tags:
+        - Tasks
+      summary: Create task
+      operationId: createTask
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdParam'
+        - $ref: '#/components/parameters/TasklistIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+      responses:
+        '200':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskCreated'
+
+  /all-tasks:
+    get:
+      tags:
+        - Tasks
+      summary: Get all tasks
+      description: Paginated collection of all tasks
+      operationId: getAllTasks
+      parameters:
+        - name: search_query
+          in: query
+          description: Fulltext search query for the task name
+          schema:
+            type: string
+        - name: state_id
+          in: query
+          description: ID of the tasks state
+          schema:
+            type: integer
+        - name: projects_ids[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: tasklists_ids[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: order_by
+          in: query
+          schema:
+            type: string
+            enum: [priority, name, date_add, date_edited_at]
+            default: date_add
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+        - name: with_label
+          in: query
+          description: Filter by label name (case insensitive)
+          schema:
+            type: string
+        - name: without_label
+          in: query
+          description: Exclude by label name (case insensitive)
+          schema:
+            type: string
+        - name: no_due_date
+          in: query
+          description: Only tasks with no due date
+          schema:
+            type: boolean
+            default: false
+        - name: due_date_range[date_from]
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: due_date_range[date_to]
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: finished_overdue
+          in: query
+          description: Only tasks finished after due date
+          schema:
+            type: boolean
+            default: false
+        - name: finished_date_range[date_from]
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: finished_date_range[date_to]
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: worker_id
+          in: query
+          description: Filter by worker ID
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/PageParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          tasks:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/TaskFull'
+
+  /tasklist/{tasklist_id}/finished-tasks:
+    get:
+      tags:
+        - Tasks
+      summary: Get finished tasks in tasklist
+      operationId: getFinishedTasks
+      parameters:
+        - $ref: '#/components/parameters/TasklistIdParam'
+        - name: search_query
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PageParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          finished_tasks:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/TaskFinished'
+
+  /task/{task_id}:
+    get:
+      tags:
+        - Tasks
+      summary: Get task
+      operationId: getTask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDetail'
+    post:
+      tags:
+        - Tasks
+      summary: Edit task
+      operationId: editTask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                due_date:
+                  type: string
+                  format: date-time
+                due_date_end:
+                  type: string
+                  format: date-time
+                worker:
+                  type: integer
+                priority_enum:
+                  type: string
+                  enum: [l, m, h]
+                  nullable: true
+                  description: Allowed options are l, m, h. Set to null to remove priority.
+                tracking_users_ids:
+                  type: array
+                  nullable: true
+                  description: Set (replace) all tracking users. Pass an empty array to remove all.
+                  items:
+                    type: integer
+                add_tracking_users_ids:
+                  type: array
+                  description: Add tracking users by user ID (merged with existing).
+                  items:
+                    type: integer
+                remove_tracking_users_ids:
+                  type: array
+                  description: Remove tracking users by user ID.
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Task updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDetail'
+    delete:
+      tags:
+        - Tasks
+      summary: Delete task
+      operationId: deleteTask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /task/{task_id}/activate:
+    post:
+      tags:
+        - Tasks
+      summary: Activate task
+      operationId: activateTask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /task/{task_id}/finish:
+    post:
+      tags:
+        - Tasks
+      summary: Finish task
+      operationId: finishTask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /task/{task_id}/move/{tasklist_id}:
+    post:
+      tags:
+        - Tasks
+      summary: Move task to another tasklist
+      operationId: moveTask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+        - $ref: '#/components/parameters/TasklistIdParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                work_reports_action:
+                  type: string
+                  enum: [move_to_target_project, keep_on_origin_project]
+                  default: move_to_target_project
+                custom_fields_action:
+                  type: string
+                  enum: [nothing, delete_what_cant_be_keep, move_to_comments_what_cant_be_keep, delete_all, move_to_comments_all]
+                  default: nothing
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /task/{task_id}/description:
+    get:
+      tags:
+        - Tasks
+      summary: Get task description
+      operationId: getTaskDescription
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+    post:
+      tags:
+        - Tasks
+      summary: Edit task description
+      description: Can also be used to create a new task description
+      operationId: editTaskDescription
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                files:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/FileUpload'
+      responses:
+        '200':
+          description: Description updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+
+  /task/{task_id}/reminder:
+    post:
+      tags:
+        - Tasks
+      summary: Create task reminder
+      operationId: createTaskReminder
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - remind_at
+              properties:
+                remind_at:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Reminder created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  remind_at:
+                    type: string
+                    format: date-time
+                  task:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+    delete:
+      tags:
+        - Tasks
+      summary: Delete task reminder
+      operationId: deleteTaskReminder
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /public-link/task/{task_id}:
+    get:
+      tags:
+        - Tasks
+      summary: Get public link to task
+      operationId: getPublicLinkToTask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+    delete:
+      tags:
+        - Tasks
+      summary: Delete public link to task
+      operationId: deletePublicLinkToTask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /task/create-from-template/{template_id}:
+    post:
+      tags:
+        - Tasks
+      summary: Create task from template
+      operationId: createTaskFromTemplate
+      parameters:
+        - name: template_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - task_id
+              properties:
+                task_id:
+                  type: integer
+                  description: ID of the task from template
+                target_project_id:
+                  type: integer
+                target_tasklist_id:
+                  type: integer
+                preset_date_from:
+                  type: string
+                  format: date
+                users_ids:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  tasklist:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+
+  /task/{task_id}/total-time-estimate:
+    post:
+      tags:
+        - Tasks
+      summary: Set total time estimate
+      operationId: setTotalTimeEstimate
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - minutes
+              properties:
+                minutes:
+                  type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+    delete:
+      tags:
+        - Tasks
+      summary: Delete total time estimate
+      operationId: deleteTotalTimeEstimate
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /task/{task_id}/users-time-estimates/{user_id}:
+    post:
+      tags:
+        - Tasks
+      summary: Set user time estimate
+      operationId: setUserTimeEstimate
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - minutes
+              properties:
+                minutes:
+                  type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+    delete:
+      tags:
+        - Tasks
+      summary: Delete user time estimate
+      operationId: deleteUserTimeEstimate
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==================== SUBTASKS ====================
+  /task/{task_id}/subtasks:
+    get:
+      tags:
+        - Subtasks
+      summary: Get subtasks in task
+      operationId: getSubtasksInTask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+        - $ref: '#/components/parameters/PageParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          subtasks:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Subtask'
+    post:
+      tags:
+        - Subtasks
+      summary: Create subtask
+      operationId: createSubtask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubtaskCreate'
+      responses:
+        '200':
+          description: Subtask created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subtask'
+
+  # ==================== TASK LABELS ====================
+  /task-labels:
+    post:
+      tags:
+        - Task Labels
+      summary: Create task labels
+      operationId: createTaskLabels
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                labels:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      color:
+                        type: string
+      responses:
+        '200':
+          description: Labels created
+
+  /task-labels/add-to-task/{task_id}:
+    post:
+      tags:
+        - Task Labels
+      summary: Add task labels to task
+      operationId: addTaskLabelsToTask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - labels
+              properties:
+                labels:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/TaskLabelInput'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /task-labels/remove-from-task/{task_id}:
+    post:
+      tags:
+        - Task Labels
+      summary: Remove task labels from task
+      operationId: removeTaskLabelsFromTask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - labels
+              properties:
+                labels:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/TaskLabelInput'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==================== COMMENTS ====================
+  /task/{task_id}/comments:
+    post:
+      tags:
+        - Comments
+      summary: Create comment
+      description: If task has no comments, it will create description instead of comment
+      operationId: createComment
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                files:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/FileUpload'
+      responses:
+        '200':
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+
+  /comment/{comment_id}:
+    post:
+      tags:
+        - Comments
+      summary: Edit comment
+      operationId: editComment
+      parameters:
+        - name: comment_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                files:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/FileUpload'
+      responses:
+        '200':
+          description: Comment updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+
+  /all-comments:
+    get:
+      tags:
+        - Comments
+      summary: Get all comments
+      description: Paginated collection of all comments
+      operationId: getAllComments
+      parameters:
+        - name: projects_ids[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: type
+          in: query
+          description: Comment type
+          schema:
+            type: string
+            enum: [all, task, document, file, link]
+            default: all
+        - name: order_by
+          in: query
+          schema:
+            type: string
+            enum: [date_add, date_edited_at]
+            default: date_add
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - $ref: '#/components/parameters/PageParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          comments:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/CommentFull'
+
+  # ==================== TIME TRACKING ====================
+  /timetracking/start:
+    post:
+      tags:
+        - Time Tracking
+      summary: Start time tracking
+      operationId: startTimeTracking
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                task_id:
+                  type: integer
+                note:
+                  type: string
+      responses:
+        '200':
+          description: Time tracking started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uuid:
+                    type: string
+                    format: uuid
+
+  /timetracking/stop:
+    post:
+      tags:
+        - Time Tracking
+      summary: Stop time tracking
+      operationId: stopTimeTracking
+      responses:
+        '200':
+          description: Time tracking stopped
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkReport'
+
+  /timetracking/edit:
+    post:
+      tags:
+        - Time Tracking
+      summary: Edit time tracking
+      operationId: editTimeTracking
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                task_id:
+                  type: integer
+                note:
+                  type: string
+      responses:
+        '200':
+          description: Time tracking updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uuid:
+                    type: string
+                    format: uuid
+
+  # ==================== WORK REPORTS ====================
+  /work-reports:
+    get:
+      tags:
+        - Work Reports
+      summary: Get work reports
+      operationId: getWorkReports
+      parameters:
+        - name: projects_ids[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: users_ids[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: tasks_ids[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: tasks_labels[]
+          in: query
+          description: UUIDs for task labels
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+        - name: date_reported_range[date_from]
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_reported_range[date_to]
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_add_range[date_from]
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_add_range[date_to]
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_edited_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/PageParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          reports:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/WorkReportFull'
+
+  /task/{task_id}/work-reports:
+    post:
+      tags:
+        - Work Reports
+      summary: Create work report
+      operationId: createWorkReport
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - minutes
+              properties:
+                date_reported:
+                  type: string
+                  format: date
+                worker_id:
+                  type: integer
+                minutes:
+                  type: integer
+                cost:
+                  type: string
+                  description: "Currency amount (2 decimal places × 100)"
+                note:
+                  type: string
+      responses:
+        '200':
+          description: Work report created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkReport'
+
+  /work-reports/{work_report_id}:
+    post:
+      tags:
+        - Work Reports
+      summary: Edit work report
+      operationId: editWorkReport
+      parameters:
+        - name: work_report_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                minutes:
+                  type: integer
+                cost:
+                  type: string
+                date_reported:
+                  type: string
+                  format: date
+                note:
+                  type: string
+                task_id:
+                  type: integer
+      responses:
+        '200':
+          description: Work report updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkReport'
+    delete:
+      tags:
+        - Work Reports
+      summary: Delete work report
+      operationId: deleteWorkReport
+      parameters:
+        - name: work_report_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==================== INVOICING ====================
+  /issued-invoices:
+    get:
+      tags:
+        - Invoicing
+      summary: Get issued invoices
+      operationId: getIssuedInvoices
+      parameters:
+        - name: date_range[date_from]
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_range[date_to]
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: projects_ids[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+        - $ref: '#/components/parameters/PageParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          issued_invoices:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/IssuedInvoice'
+
+  /issued-invoice/{invoice_id}:
+    get:
+      tags:
+        - Invoicing
+      summary: Get issued invoice detail
+      operationId: getIssuedInvoiceDetail
+      parameters:
+        - name: invoice_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssuedInvoiceDetail'
+
+  /issued-invoice/{invoice_id}/reports:
+    get:
+      tags:
+        - Invoicing
+      summary: Download issued invoice reports
+      operationId: downloadIssuedInvoiceReports
+      parameters:
+        - name: invoice_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /issued-invoice/{invoice_id}/reports-json:
+    get:
+      tags:
+        - Invoicing
+      summary: Get issued invoice reports as JSON
+      operationId: getIssuedInvoiceReportsJson
+      parameters:
+        - name: invoice_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: JSON array of work report rows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorkReportExtended'
+
+  /issued-invoice/{invoice_id}/mark-as-invoiced:
+    post:
+      tags:
+        - Invoicing
+      summary: Mark issued invoice as invoiced
+      operationId: markAsInvoiced
+      parameters:
+        - name: invoice_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+                - subject
+              properties:
+                url:
+                  type: string
+                  format: uri
+                subject:
+                  type: string
+      responses:
+        '200':
+          description: Invoice marked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssuedInvoiceDetail'
+
+  # ==================== USERS ====================
+  /users:
+    get:
+      tags:
+        - Users
+      summary: Get all users (coworkers)
+      operationId: getAllUsers
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          users:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/UserBasic'
+
+  /users/project-manager-of:
+    get:
+      tags:
+        - Users
+      summary: Find users who promoted me as project manager
+      operationId: getProjectManagerOf
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserBasic'
+
+  /users/manage-workers:
+    post:
+      tags:
+        - Users
+      summary: Invite users to projects
+      operationId: inviteUsersToProjects
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - projects_ids
+              properties:
+                projects_ids:
+                  type: array
+                  items:
+                    type: integer
+                emails:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+                users_ids:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Users invited
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  newly_invited_users_to_projects:
+                    type: array
+                    items:
+                      type: object
+                  newly_created_users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        email:
+                          type: string
+                  newly_invited_users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        projects_ids:
+                          type: array
+                          items:
+                            type: integer
+                        email:
+                          type: string
+                  removed_users_from_projects:
+                    type: array
+                    items:
+                      type: object
+
+  /user/{user_id}/out-of-office:
+    get:
+      tags:
+        - Users
+      summary: Get out of office status
+      operationId: getOutOfOffice
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  out_of_office:
+                    type: object
+                    nullable: true
+                    properties:
+                      date_from:
+                        type: string
+                        format: date-time
+                      date_to:
+                        type: string
+                        format: date-time
+    post:
+      tags:
+        - Users
+      summary: Enable out of office
+      operationId: enableOutOfOffice
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - out_of_office
+              properties:
+                out_of_office:
+                  type: object
+                  required:
+                    - date_from
+                    - date_to
+                  properties:
+                    date_from:
+                      type: string
+                      format: date-time
+                    date_to:
+                      type: string
+                      format: date-time
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+    delete:
+      tags:
+        - Users
+      summary: Disable out of office
+      operationId: disableOutOfOffice
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==================== NOTIFICATIONS ====================
+  /all-notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get all notifications
+      operationId: getAllNotifications
+      parameters:
+        - name: projects_ids[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: users_ids[]
+          in: query
+          description: Authors of notifications
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: teams_uuids[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: notification_types[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+        - name: only_unread
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - $ref: '#/components/parameters/PageParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          notifications:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Notification'
+
+  /notification/{notification_id}/mark-as-read:
+    post:
+      tags:
+        - Notifications
+      summary: Mark notification as read
+      operationId: markNotificationAsRead
+      parameters:
+        - name: notification_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /notification/{notification_id}/mark-as-unread:
+    post:
+      tags:
+        - Notifications
+      summary: Mark notification as unread
+      operationId: markNotificationAsUnread
+      parameters:
+        - name: notification_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==================== EVENTS ====================
+  /events:
+    get:
+      tags:
+        - Events
+      summary: Get all events
+      operationId: getAllEvents
+      parameters:
+        - name: projects_ids[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: users_ids[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: events_types[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: date_range[date_from]
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_range[date_to]
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: tasks_ids[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+        - $ref: '#/components/parameters/PageParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          events:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Event'
+
+  # ==================== FILES ====================
+  /file/{file_uuid}:
+    get:
+      tags:
+        - Files
+      summary: Download file
+      operationId: downloadFile
+      parameters:
+        - name: file_uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: File content
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /file/upload:
+    post:
+      tags:
+        - Files
+      summary: Upload file
+      description: |
+        Upload a file (max 100MB). The returned UUID can be used in comment content 
+        as `<a data-freelo-uuid="uuid">caption</a>`.
+      operationId: uploadFile
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: File uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uuid:
+                    type: string
+                    format: uuid
+
+  /all-docs-and-files:
+    get:
+      tags:
+        - Files
+      summary: Get all documents and files
+      description: Returns items from directories (directory, link, file, document)
+      operationId: getAllDocsAndFiles
+      parameters:
+        - name: projects_ids[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [directory, link, file, document]
+        - $ref: '#/components/parameters/PageParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          items:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/FileItem'
+
+  # ==================== STATES ====================
+  /states:
+    get:
+      tags:
+        - States
+      summary: Get all states
+      operationId: getAllStates
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  states:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/State'
+
+  # ==================== CUSTOM FIELDS ====================
+  /custom-field/get-types:
+    get:
+      tags:
+        - Custom Fields
+      summary: Get custom field types
+      operationId: getCustomFieldTypes
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  custom_field_types:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          format: uuid
+                        name:
+                          type: string
+
+  /custom-field/create/{project_id}:
+    post:
+      tags:
+        - Custom Fields
+      summary: Create custom field
+      operationId: createCustomField
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - type
+              properties:
+                uuid:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                type:
+                  type: string
+                  format: uuid
+                  description: |
+                    UUID of custom field type:
+                    - `2f7bfe3a-c950-470e-b910-95b4caf5dc4f` - text
+                    - `b1e56fa9-a97a-429b-8ab4-82bebe58933a` - number
+                    - `f9729a8f-d340-40e4-b2c0-dc46c37e18ce` - enum
+      responses:
+        '200':
+          description: Custom field created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  custom_field:
+                    $ref: '#/components/schemas/CustomField'
+
+  /custom-field/rename/{uuid}:
+    post:
+      tags:
+        - Custom Fields
+      summary: Rename custom field
+      operationId: renameCustomField
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Custom field renamed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  custom_field:
+                    $ref: '#/components/schemas/CustomField'
+
+  /custom-field/delete/{uuid}:
+    delete:
+      tags:
+        - Custom Fields
+      summary: Delete custom field
+      operationId: deleteCustomField
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /custom-field/restore/{uuid}:
+    post:
+      tags:
+        - Custom Fields
+      summary: Restore custom field
+      operationId: restoreCustomField
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Custom field restored
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  custom_field:
+                    $ref: '#/components/schemas/CustomField'
+
+  /custom-field/add-or-edit-value:
+    post:
+      tags:
+        - Custom Fields
+      summary: Add or edit custom field value
+      operationId: addOrEditCustomFieldValue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - custom_field_uuid
+                - task_id
+                - value
+              properties:
+                custom_field_uuid:
+                  type: string
+                  format: uuid
+                task_id:
+                  type: integer
+                value:
+                  type: string
+      responses:
+        '200':
+          description: Value set
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  custom_field_value:
+                    $ref: '#/components/schemas/CustomFieldValue'
+
+  /custom-field/add-or-edit-enum-value:
+    post:
+      tags:
+        - Custom Fields
+      summary: Assign or edit enum option
+      operationId: addOrEditEnumValue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - customFieldUuid
+                - task_id
+                - value
+              properties:
+                customFieldUuid:
+                  type: string
+                  format: uuid
+                task_id:
+                  type: integer
+                value:
+                  type: string
+                  format: uuid
+                  description: UUID of enum option
+      responses:
+        '200':
+          description: Enum value set
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customFieldEnum:
+                    $ref: '#/components/schemas/CustomFieldEnumValue'
+
+  /custom-field/delete-value/{uuid}:
+    delete:
+      tags:
+        - Custom Fields
+      summary: Delete custom field value
+      operationId: deleteCustomFieldValue
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /custom-field-enum/get-for-custom-field/{custom_field_uuid}:
+    get:
+      tags:
+        - Custom Fields
+      summary: Get enum options for custom field
+      operationId: getEnumOptionsForCustomField
+      parameters:
+        - name: custom_field_uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  custom_field_enum:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CustomFieldEnumOption'
+
+  /custom-field-enum/create/{custom_field_uuid}:
+    post:
+      tags:
+        - Custom Fields
+      summary: Create enum option
+      operationId: createEnumOption
+      parameters:
+        - name: custom_field_uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - value
+              properties:
+                uuid:
+                  type: string
+                  format: uuid
+                value:
+                  type: string
+      responses:
+        '200':
+          description: Enum option created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  custom_field_enum:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        format: uuid
+                      value:
+                        type: string
+
+  /custom-field-enum/change/{custom_field_enum_uuid}:
+    post:
+      tags:
+        - Custom Fields
+      summary: Edit enum option
+      operationId: editEnumOption
+      parameters:
+        - name: custom_field_enum_uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - value
+              properties:
+                value:
+                  type: string
+      responses:
+        '200':
+          description: Enum option updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  custom_field_enum:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        format: uuid
+                      value:
+                        type: string
+
+  /custom-field-enum/delete/{custom_field_enum_uuid}:
+    delete:
+      tags:
+        - Custom Fields
+      summary: Delete enum option
+      description: Delete unused enum option. Returns error if enum is in use.
+      operationId: deleteEnumOption
+      parameters:
+        - name: custom_field_enum_uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /custom-field-enum/force-delete/{custom_field_enum_uuid}:
+    delete:
+      tags:
+        - Custom Fields
+      summary: Force delete enum option
+      description: Delete enum option even if it is being used
+      operationId: forceDeleteEnumOption
+      parameters:
+        - name: custom_field_enum_uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /custom-field/find-by-project/{project_id}:
+    get:
+      tags:
+        - Custom Fields
+      summary: Find custom fields by project
+      operationId: findCustomFieldsByProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  custom_fields:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CustomField'
+                  is_commander:
+                    type: boolean
+
+  # ==================== NOTES ====================
+  /project/{project_id}/note:
+    post:
+      tags:
+        - Notes
+      summary: Create note
+      operationId: createNote
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                content:
+                  type: string
+      responses:
+        '200':
+          description: Note created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+
+  /note/{note_id}:
+    get:
+      tags:
+        - Notes
+      summary: Get note
+      operationId: getNote
+      parameters:
+        - name: note_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+    post:
+      tags:
+        - Notes
+      summary: Edit note
+      operationId: editNote
+      parameters:
+        - name: note_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                content:
+                  type: string
+      responses:
+        '200':
+          description: Note updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+    delete:
+      tags:
+        - Notes
+      summary: Delete note
+      operationId: deleteNote
+      parameters:
+        - name: note_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Note deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+
+  # ==================== SEARCH ====================
+  /search:
+    post:
+      tags:
+        - Search
+      summary: Search using Elasticsearch
+      operationId: search
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - search_query
+              properties:
+                search_query:
+                  type: string
+                projects_ids:
+                  type: array
+                  items:
+                    type: integer
+                tasklists_ids:
+                  type: array
+                  items:
+                    type: integer
+                tasks_ids:
+                  type: array
+                  items:
+                    type: integer
+                authors_ids:
+                  type: array
+                  items:
+                    type: integer
+                workers_ids:
+                  type: array
+                  items:
+                    type: integer
+                state_ids:
+                  type: array
+                  items:
+                    type: string
+                    enum: [active, archived, finished, template, not_template, archived_finished, archived_unfinished]
+                  default: [active]
+                lang:
+                  type: string
+                  example: cs_cz
+                due_date:
+                  type: object
+                  properties:
+                    date_from:
+                      type: string
+                      format: date
+                    date_to:
+                      type: string
+                      format: date
+                entity_type:
+                  type: string
+                  enum: [task, subtask, project, tasklist, file, comment]
+                page:
+                  type: integer
+                  default: 0
+                limit:
+                  type: integer
+                  default: 100
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          items:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/SearchResult'
+
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: Use your email as username and API key as password
+
+  parameters:
+    PageParam:
+      name: p
+      in: query
+      description: Page number (starting from 0)
+      schema:
+        type: integer
+        default: 0
+
+    ProjectIdParam:
+      name: project_id
+      in: path
+      required: true
+      schema:
+        type: integer
+
+    TasklistIdParam:
+      name: tasklist_id
+      in: path
+      required: true
+      schema:
+        type: integer
+
+    TaskIdParam:
+      name: task_id
+      in: path
+      required: true
+      schema:
+        type: integer
+
+  schemas:
+    SuccessResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          example: success
+
+    PaginatedResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        count:
+          type: integer
+        page:
+          type: integer
+        per_page:
+          type: integer
+
+    Currency:
+      type: object
+      properties:
+        amount:
+          type: string
+          description: Amount multiplied by 100
+        currency:
+          type: string
+          enum: [CZK, EUR, USD]
+
+    TaskBasic:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+
+    TaskWork:
+      type: object
+      properties:
+        id:
+          type: integer
+        reported:
+          type: string
+          format: date-time
+        minutes:
+          type: integer
+        cost:
+          $ref: '#/components/schemas/Currency'
+        notice:
+          type: string
+          nullable: true
+
+    State:
+      type: object
+      properties:
+        id:
+          type: integer
+        state:
+          type: string
+          enum: [active, archived, finished, deleted, template]
+
+    UserBasic:
+      type: object
+      properties:
+        id:
+          type: integer
+        fullname:
+          type: string
+
+    Client:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        company:
+          type: string
+        company_id:
+          type: string
+        company_tax_id:
+          type: string
+        street:
+          type: string
+        town:
+          type: string
+        zip:
+          type: string
+
+    TasklistBasic:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+
+    ProjectBasic:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+
+    ProjectWithTasklists:
+      allOf:
+        - $ref: '#/components/schemas/ProjectBasic'
+        - type: object
+          properties:
+            date_add:
+              type: string
+              format: date-time
+            date_edited_at:
+              type: string
+              format: date-time
+            tasklists:
+              type: array
+              items:
+                $ref: '#/components/schemas/TasklistBasic'
+            client:
+              $ref: '#/components/schemas/Client'
+
+    ProjectFull:
+      allOf:
+        - $ref: '#/components/schemas/ProjectBasic'
+        - type: object
+          properties:
+            date_add:
+              type: string
+              format: date-time
+            date_edited_at:
+              type: string
+              format: date-time
+            owner:
+              $ref: '#/components/schemas/UserBasic'
+            state:
+              $ref: '#/components/schemas/State'
+            minutes_budget:
+              type: integer
+              nullable: true
+            budget:
+              $ref: '#/components/schemas/Currency'
+            real_minutes_spent:
+              type: integer
+            real_cost:
+              $ref: '#/components/schemas/Currency'
+
+    ProjectDetail:
+      allOf:
+        - $ref: '#/components/schemas/ProjectFull'
+        - type: object
+          properties:
+            tasklists:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  tasks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                        due_date:
+                          type: string
+                          format: date-time
+                          nullable: true
+                        due_date_end:
+                          type: string
+                          format: date-time
+                          nullable: true
+                        worker:
+                          $ref: '#/components/schemas/UserBasic'
+                        parent_task_id:
+                          type: integer
+                          nullable: true
+            workers:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  fullname:
+                    type: string
+                  hour_rate:
+                    type: object
+                    nullable: true
+                    properties:
+                      amount:
+                        type: integer
+                      currency:
+                        type: string
+                      is_fixed:
+                        type: boolean
+
+    ProjectLabel:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        color:
+          type: string
+          nullable: true
+        is_private:
+          type: boolean
+        users_id:
+          type: integer
+        usage_count:
+          type: integer
+        can_be_public:
+          type: boolean
+        can_be_edited:
+          type: boolean
+
+    PinnedItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        link:
+          type: string
+          format: uri
+        title:
+          type: string
+
+    TasklistWithBudget:
+      allOf:
+        - $ref: '#/components/schemas/TasklistBasic'
+        - type: object
+          properties:
+            budget:
+              $ref: '#/components/schemas/Currency'
+
+    TasklistFull:
+      allOf:
+        - $ref: '#/components/schemas/TasklistBasic'
+        - type: object
+          properties:
+            date_add:
+              type: string
+              format: date-time
+            date_edited_at:
+              type: string
+              format: date-time
+            state:
+              $ref: '#/components/schemas/State'
+            project:
+              allOf:
+                - $ref: '#/components/schemas/ProjectBasic'
+                - type: object
+                  properties:
+                    state:
+                      $ref: '#/components/schemas/State'
+            real_minutes_spent:
+              type: integer
+            budget:
+              $ref: '#/components/schemas/Currency'
+            real_cost:
+              $ref: '#/components/schemas/Currency'
+
+    TasklistDetail:
+      allOf:
+        - $ref: '#/components/schemas/TasklistBasic'
+        - type: object
+          properties:
+            date_add:
+              type: string
+              format: date-time
+            date_edited_at:
+              type: string
+              format: date-time
+            tasks:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  due_date:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  due_date_end:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  worker:
+                    $ref: '#/components/schemas/UserBasic'
+                  parent_task_id:
+                    type: integer
+                    nullable: true
+
+    TaskLabel:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        name:
+          type: string
+        color:
+          type: string
+
+    TaskLabelInput:
+      type: object
+      properties:
+        name:
+          type: string
+        color:
+          type: string
+        uuid:
+          type: string
+          format: uuid
+
+    TimeEstimate:
+      type: object
+      properties:
+        minutes:
+          type: integer
+
+    UserTimeEstimate:
+      type: object
+      properties:
+        minutes:
+          type: integer
+        user:
+          $ref: '#/components/schemas/UserBasic'
+
+    TaskSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        date_add:
+          type: string
+          format: date-time
+        date_edited_at:
+          type: string
+          format: date-time
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+        due_date_end:
+          type: string
+          format: date-time
+          nullable: true
+        count_comments:
+          type: integer
+        count_subtasks:
+          type: integer
+        author:
+          $ref: '#/components/schemas/UserBasic'
+        worker:
+          $ref: '#/components/schemas/UserBasic'
+        labels:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskLabel'
+        parent_task_id:
+          type: integer
+          nullable: true
+        total_time_estimate:
+          $ref: '#/components/schemas/TimeEstimate'
+        users_time_estimates:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserTimeEstimate'
+
+    TaskFull:
+      allOf:
+        - $ref: '#/components/schemas/TaskSummary'
+        - type: object
+          properties:
+            state:
+              $ref: '#/components/schemas/State'
+            project:
+              allOf:
+                - $ref: '#/components/schemas/ProjectBasic'
+                - type: object
+                  properties:
+                    state:
+                      $ref: '#/components/schemas/State'
+            tasklist:
+              allOf:
+                - $ref: '#/components/schemas/TasklistBasic'
+                - type: object
+                  properties:
+                    state:
+                      $ref: '#/components/schemas/State'
+            custom_fields:
+              type: array
+              items:
+                $ref: '#/components/schemas/CustomFieldWithValue'
+
+    TaskFinished:
+      allOf:
+        - $ref: '#/components/schemas/TaskSummary'
+        - type: object
+          properties:
+            date_finished:
+              type: string
+              format: date-time
+            finished_by:
+              $ref: '#/components/schemas/UserBasic'
+
+    TaskCreate:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        due_date:
+          type: string
+          format: date-time
+        due_date_end:
+          type: string
+          format: date-time
+        worker:
+          type: integer
+        priority_enum:
+          type: string
+          enum: [h, m, l]
+        comment:
+          type: object
+          properties:
+            content:
+              type: string
+        labels:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              color:
+                type: string
+        tracking_users_ids:
+          type: array
+          items:
+            type: integer
+        turn_off_authors_tracking:
+          type: boolean
+          default: false
+        subtasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubtaskCreate'
+
+    TaskCreated:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        date_add:
+          type: string
+          format: date-time
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+        due_date_end:
+          type: string
+          format: date-time
+          nullable: true
+        worker:
+          $ref: '#/components/schemas/UserBasic'
+        priority_enum:
+          type: string
+        labels:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskLabel'
+        tracking_users:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserBasic'
+        subtasks:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              task_id:
+                type: integer
+              name:
+                type: string
+
+    TaskDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        date_add:
+          type: string
+          format: date-time
+        date_edited_at:
+          type: string
+          format: date-time
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+        due_date_end:
+          type: string
+          format: date-time
+          nullable: true
+        date_finished:
+          type: string
+          format: date-time
+          nullable: true
+        minutes:
+          type: integer
+        priority_enum:
+          type: string
+        count_subtasks:
+          type: integer
+        parent_task_id:
+          type: integer
+          nullable: true
+        cost:
+          $ref: '#/components/schemas/Currency'
+        author:
+          $ref: '#/components/schemas/UserBasic'
+        worker:
+          $ref: '#/components/schemas/UserBasic'
+        state:
+          $ref: '#/components/schemas/State'
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommentWithFiles'
+        labels:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskLabel'
+        project:
+          $ref: '#/components/schemas/ProjectBasic'
+        tasklist:
+          $ref: '#/components/schemas/TasklistBasic'
+        custom_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldWithValue'
+        total_time_estimate:
+          $ref: '#/components/schemas/TimeEstimate'
+        users_time_estimates:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserTimeEstimate'
+        tracking_users:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserBasic'
+
+    SubtaskCreate:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        due_date:
+          type: string
+          format: date-time
+        due_date_end:
+          type: string
+          format: date-time
+        worker:
+          type: integer
+        priority_enum:
+          type: string
+          enum: [h, m, l]
+        comment:
+          type: object
+          properties:
+            content:
+              type: string
+        labels:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskLabelInput'
+        tracking_users_ids:
+          type: array
+          items:
+            type: integer
+
+    Subtask:
+      type: object
+      properties:
+        id:
+          type: integer
+        task_id:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        date_add:
+          type: string
+          format: date-time
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+        due_date_end:
+          type: string
+          format: date-time
+          nullable: true
+        count_comments:
+          type: integer
+        count_subtasks:
+          type: integer
+        author:
+          $ref: '#/components/schemas/UserBasic'
+        worker:
+          $ref: '#/components/schemas/UserBasic'
+        state:
+          $ref: '#/components/schemas/State'
+        project:
+          allOf:
+            - $ref: '#/components/schemas/ProjectBasic'
+            - type: object
+              properties:
+                state:
+                  $ref: '#/components/schemas/State'
+        tasklist:
+          allOf:
+            - $ref: '#/components/schemas/TasklistBasic'
+            - type: object
+              properties:
+                state:
+                  $ref: '#/components/schemas/State'
+        labels:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskLabel'
+
+    FileBasic:
+      type: object
+      properties:
+        id:
+          type: integer
+        uuid:
+          type: string
+          format: uuid
+        filename:
+          type: string
+        size:
+          type: integer
+
+    FileFull:
+      allOf:
+        - $ref: '#/components/schemas/FileBasic'
+        - type: object
+          properties:
+            caption:
+              type: string
+            description:
+              type: string
+            date_add:
+              type: string
+              format: date-time
+            date_edited_at:
+              type: string
+              format: date-time
+            state:
+              $ref: '#/components/schemas/State'
+
+    FileUpload:
+      type: object
+      required:
+        - download_url
+      properties:
+        download_url:
+          type: string
+          format: uri
+        filename:
+          type: string
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+        content:
+          type: string
+        date_add:
+          type: string
+          format: date-time
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/FileBasic'
+
+    CommentWithFiles:
+      allOf:
+        - $ref: '#/components/schemas/Comment'
+        - type: object
+          properties:
+            author:
+              $ref: '#/components/schemas/UserBasic'
+            is_description:
+              type: boolean
+            comments_reactions:
+              type: array
+              items:
+                $ref: '#/components/schemas/UserBasic'
+            files:
+              type: array
+              items:
+                $ref: '#/components/schemas/FileFull'
+
+    CommentFull:
+      type: object
+      properties:
+        id:
+          type: integer
+          nullable: true
+        uuid:
+          type: string
+          format: uuid
+          nullable: true
+        content:
+          type: string
+        date_add:
+          type: string
+          format: date-time
+        date_edited_at:
+          type: string
+          format: date-time
+        author:
+          $ref: '#/components/schemas/UserBasic'
+        task:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        tasklist:
+          $ref: '#/components/schemas/TasklistBasic'
+        project:
+          $ref: '#/components/schemas/ProjectBasic'
+        document:
+          type: object
+          nullable: true
+          properties:
+            uuid:
+              type: string
+              format: uuid
+            name:
+              type: string
+        link:
+          type: object
+          nullable: true
+          properties:
+            uuid:
+              type: string
+              format: uuid
+            name:
+              type: string
+        file:
+          type: object
+          nullable: true
+          properties:
+            uuid:
+              type: string
+              format: uuid
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/FileFull'
+
+    WorkReport:
+      type: object
+      properties:
+        id:
+          type: integer
+        date_add:
+          type: string
+          format: date-time
+        date_reported:
+          type: string
+          format: date
+        note:
+          type: string
+          nullable: true
+        minutes:
+          type: integer
+        cost:
+          $ref: '#/components/schemas/Currency'
+        author:
+          $ref: '#/components/schemas/UserBasic'
+        worker:
+          $ref: '#/components/schemas/UserBasic'
+        task:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+
+    WorkReportExtended:
+      allOf:
+        - $ref: '#/components/schemas/WorkReport'
+        - type: object
+          properties:
+            project:
+              $ref: '#/components/schemas/ProjectBasic'
+            tasklist:
+              $ref: '#/components/schemas/TasklistBasic'
+            work_report_id:
+              type: integer
+              nullable: true
+
+    WorkReportFull:
+      allOf:
+        - $ref: '#/components/schemas/WorkReport'
+        - type: object
+          properties:
+            date_edited_at:
+              type: string
+              format: date-time
+            task:
+              type: object
+              properties:
+                id:
+                  type: integer
+                name:
+                  type: string
+                minutes:
+                  type: integer
+                parent_task_id:
+                  type: integer
+                  nullable: true
+                cost:
+                  $ref: '#/components/schemas/Currency'
+                labels:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/TaskLabel'
+                total_time_estimate:
+                  $ref: '#/components/schemas/TimeEstimate'
+                users_time_estimates:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/UserTimeEstimate'
+            tasklist:
+              $ref: '#/components/schemas/TasklistBasic'
+            project:
+              type: object
+              properties:
+                id:
+                  type: integer
+                name:
+                  type: string
+                labels:
+                  type: array
+                  items:
+                    type: string
+
+    IssuedInvoice:
+      type: object
+      properties:
+        id:
+          type: integer
+        date_add:
+          type: string
+          format: date-time
+        note:
+          type: string
+          nullable: true
+        currency:
+          type: string
+          enum: [CZK, EUR, USD]
+        minutes:
+          type: integer
+        price:
+          $ref: '#/components/schemas/Currency'
+        subject:
+          type: object
+          properties:
+            company_name:
+              type: string
+            invoice_url:
+              type: string
+        inv_items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              minutes:
+                type: integer
+              price:
+                $ref: '#/components/schemas/Currency'
+
+    IssuedInvoiceDetail:
+      allOf:
+        - $ref: '#/components/schemas/IssuedInvoice'
+        - type: object
+          properties:
+            inv_items:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  minutes:
+                    type: integer
+                  price:
+                    $ref: '#/components/schemas/Currency'
+                  reports:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        work_report_id:
+                          type: integer
+                          nullable: true
+                        project_name:
+                          type: string
+                        tasklist_name:
+                          type: string
+                        name:
+                          type: string
+                        minutes:
+                          type: integer
+                        price:
+                          $ref: '#/components/schemas/Currency'
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        date_action:
+          type: string
+          format: date-time
+        author:
+          $ref: '#/components/schemas/UserBasic'
+        who:
+          $ref: '#/components/schemas/UserBasic'
+        is_unread:
+          type: boolean
+        is_new:
+          type: boolean
+        task:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        tasklist:
+          $ref: '#/components/schemas/TasklistBasic'
+        project:
+          $ref: '#/components/schemas/ProjectBasic'
+        comment:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+        document:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        file:
+          type: object
+          nullable: true
+          properties:
+            uuid:
+              type: string
+              format: uuid
+            filename:
+              type: string
+            caption:
+              type: string
+        more_comments:
+          type: boolean
+        more_users:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserBasic'
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: integer
+        date_action:
+          type: string
+          format: date-time
+        type:
+          type: string
+        author:
+          $ref: '#/components/schemas/UserBasic'
+        who:
+          $ref: '#/components/schemas/UserBasic'
+        comment:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+        task:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        task_check:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        tasklist:
+          $ref: '#/components/schemas/TasklistBasic'
+        project:
+          $ref: '#/components/schemas/ProjectBasic'
+        document:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        file:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            uuid:
+              type: string
+              format: uuid
+            filename:
+              type: string
+            caption:
+              type: string
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+        due_date_end:
+          type: string
+          format: date-time
+          nullable: true
+
+    FileItem:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        name:
+          type: string
+        author:
+          $ref: '#/components/schemas/UserBasic'
+        project:
+          $ref: '#/components/schemas/ProjectBasic'
+        directory_uuid:
+          type: string
+          format: uuid
+          nullable: true
+        date_add:
+          type: string
+          format: date-time
+        order:
+          type: integer
+        type:
+          type: string
+          enum: [directory, link, file, document]
+        filename:
+          type: string
+          nullable: true
+        caption:
+          type: string
+          nullable: true
+        mime_type:
+          type: string
+          nullable: true
+        extension:
+          type: string
+          nullable: true
+        size:
+          type: integer
+        color:
+          type: string
+          nullable: true
+        items_count:
+          type: integer
+          nullable: true
+        link:
+          type: string
+          format: uri
+          nullable: true
+        link_type:
+          type: string
+          nullable: true
+        note:
+          type: string
+          nullable: true
+
+    CustomField:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        custom_fields_types_uuid:
+          type: string
+          format: uuid
+        project_id:
+          type: integer
+        author_id:
+          type: integer
+        name:
+          type: string
+        date_add:
+          type: string
+          format: date-time
+        priority:
+          type: integer
+
+    CustomFieldValue:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        value:
+          type: string
+        date_add:
+          type: string
+          format: date-time
+        date_edited_at:
+          type: string
+          format: date-time
+          nullable: true
+        author_id:
+          type: integer
+        task_id:
+          type: integer
+        custom_field_uuid:
+          type: string
+          format: uuid
+
+    CustomFieldEnumValue:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        task_id:
+          type: integer
+        custom_field_uuid:
+          type: string
+          format: uuid
+        value:
+          type: string
+        date_add:
+          type: string
+          format: date-time
+        date_edited_at:
+          type: string
+          format: date-time
+          nullable: true
+        author_id:
+          type: integer
+
+    CustomFieldEnumOption:
+      type: object
+      properties:
+        enum_uuid:
+          type: string
+          format: uuid
+        enum_value:
+          type: string
+        custom_field_uuid:
+          type: string
+          format: uuid
+        custom_field_name:
+          type: string
+
+    CustomFieldWithValue:
+      type: object
+      properties:
+        field_uuid:
+          type: string
+          format: uuid
+        custom_fields_types_uuid:
+          type: string
+          format: uuid
+        project_id:
+          type: integer
+        name:
+          type: string
+        priority:
+          type: integer
+        field_date_add:
+          type: string
+          format: date-time
+        value_uuid:
+          type: string
+          format: uuid
+        value_author_id:
+          type: integer
+        value:
+          type: string
+        value_date_add:
+          type: string
+          format: date-time
+        value_date_edited_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    Note:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        date_add:
+          type: string
+          format: date-time
+        date_edited_at:
+          type: string
+          format: date-time
+        state:
+          $ref: '#/components/schemas/State'
+        content:
+          type: string
+        author:
+          $ref: '#/components/schemas/UserBasic'
+        project:
+          $ref: '#/components/schemas/ProjectBasic'
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/FileFull'
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommentWithFiles'
+
+    SearchResult:
+      type: object
+      properties:
+        score:
+          type: number
+        id:
+          type: integer
+        uuid:
+          type: string
+          format: uuid
+          nullable: true
+        name:
+          type: string
+        author_id:
+          type: integer
+        type:
+          type: string
+          enum: [task, subtask, project, tasklist, file, comment]
+        highlight_name:
+          type: array
+          items:
+            type: string
+        highlight_content:
+          type: array
+          items:
+            type: string
+        project:
+          $ref: '#/components/schemas/ProjectBasic'
+        tasklist:
+          $ref: '#/components/schemas/TasklistBasic'
+        state:
+          type: integer
+        is_smart:
+          type: boolean
