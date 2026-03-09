@@ -13,7 +13,7 @@ const TEST_DATA = {
   taskId: 'mockTaskId789',
   subtaskId: 'mockSubtaskId101',
   commentId: 'mockCommentId112',
-  labelId: 'mockLabelUuid131',
+  labelId: 28131,
   userId: 'mockUserId141',
   fileUuid: 'mockFileUuid151'
 };
@@ -24,7 +24,7 @@ process.env.FREELO_API_KEY = 'mockApiKey123';
 process.env.FREELO_USER_AGENT = 'freelo-mcp-test';
 
 // Setup nock for API mocking
-const API_BASE_URL = 'https://api.freelo.cz/v1';
+const API_BASE_URL = 'https://api.freelo.io/v1';
 
 // Helper function to mock API responses
 function mockFreeloApi(method, path, statusCode, responseBody, requestBody = undefined) {
@@ -192,7 +192,7 @@ describe('MCP Tools Direct Test', () => {
         id: TEST_DATA.subtaskId,
         name: 'Mock Subtask 1',
         task_id: TEST_DATA.taskId,
-        labels: [{ uuid: TEST_DATA.labelId, name: 'Mock Label' }]
+        labels: [{ id: TEST_DATA.labelId, name: 'Mock Label' }]
       },
       {
         id: 'mockSubtask2',
@@ -219,7 +219,7 @@ describe('MCP Tools Direct Test', () => {
     expect(response.data.length).toBe(2);
     expect(response.data[0]).toHaveProperty('id', TEST_DATA.subtaskId);
     expect(response.data[0]).toHaveProperty('name', 'Mock Subtask 1');
-    expect(response.data[0].labels[0]).toHaveProperty('uuid', TEST_DATA.labelId);
+    expect(response.data[0].labels[0]).toHaveProperty('id', TEST_DATA.labelId);
   });
 
   // Test get_task_comments tool
@@ -268,12 +268,12 @@ describe('MCP Tools Direct Test', () => {
     // Mock the API response
     const mockLabels = [
       {
-        uuid: TEST_DATA.labelId,
+        id: TEST_DATA.labelId,
         name: 'Mock Label 1',
         color: '#ff0000'
       },
       {
-        uuid: 'mockLabel2',
+        id: 28132,
         name: 'Mock Label 2',
         color: '#00ff00'
       }
@@ -295,7 +295,7 @@ describe('MCP Tools Direct Test', () => {
     expect(response.status).toBe(200);
     expect(Array.isArray(response.data)).toBe(true);
     expect(response.data.length).toBe(2);
-    expect(response.data[0]).toHaveProperty('uuid', TEST_DATA.labelId);
+    expect(response.data[0]).toHaveProperty('id', TEST_DATA.labelId);
     expect(response.data[0]).toHaveProperty('name', 'Mock Label 1');
     expect(response.data[0]).toHaveProperty('color', '#ff0000');
   });
@@ -465,7 +465,7 @@ describe('MCP Tools Direct Test', () => {
       tasklist_id: TEST_DATA.tasklistId,
       project_id: TEST_DATA.projectId
     };
-    mockFreeloApi('POST', `/tasklist/${TEST_DATA.tasklistId}/task`, 200, mockCreatedTask, taskData);
+    mockFreeloApi('POST', `/project/${TEST_DATA.projectId}/tasklist/${TEST_DATA.tasklistId}/tasks`, 200, mockCreatedTask, taskData);
 
     // Create API client
     const auth = {
@@ -476,7 +476,7 @@ describe('MCP Tools Direct Test', () => {
     const apiClient = createApiClient(auth);
 
     // Create task
-    const createResponse = await apiClient.post(`/tasklist/${TEST_DATA.tasklistId}/task`, taskData);
+    const createResponse = await apiClient.post(`/project/${TEST_DATA.projectId}/tasklist/${TEST_DATA.tasklistId}/tasks`, taskData);
 
     // Check the response
     expect(createResponse.status).toBe(200);
@@ -601,9 +601,9 @@ describe('MCP Tools Direct Test', () => {
 
   // Test add_labels_to_task and remove_labels_from_task tools
   test('add_labels_to_task and remove_labels_from_task should work', async () => {
-    // Create request data for adding labels
+    // Create request data for adding labels (API uses numeric id, not uuid)
     const addLabelsData = {
-      labels: [{ uuid: TEST_DATA.labelId }]
+      labels: [{ id: Number(TEST_DATA.labelId) }]
     };
 
     // Mock the add labels API response
@@ -627,7 +627,7 @@ describe('MCP Tools Direct Test', () => {
 
     // Create request data for removing labels
     const removeLabelsData = {
-      labels: [{ uuid: TEST_DATA.labelId }]
+      labels: [{ id: Number(TEST_DATA.labelId) }]
     };
 
     // Mock the remove labels API response

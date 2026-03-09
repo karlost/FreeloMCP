@@ -45,6 +45,7 @@ export const READ_ONLY_TOOLS = [
 
   // Time Tracking & Reports
   'get_work_reports',
+  'get_time_estimates',
 
   // Custom Fields
   'get_custom_field_types',
@@ -78,6 +79,7 @@ export const READ_ONLY_TOOLS = [
   'get_issued_invoices',
   'get_invoice_detail',
   'download_invoice_reports',
+  'get_invoice_reports_json',
 
   // Comments
   'get_all_comments',
@@ -112,15 +114,20 @@ export const DESTRUCTIVE_TOOLS = [
 
   // Users
   'remove_workers',
-  'remove_workers_by_emails',
   'delete_out_of_office',
 
   // Time Tracking
   'delete_work_report',
 
+  // Labels
+  'delete_label',
+  'remove_label_from_project',
+
   // Custom Fields
   'delete_custom_field',
   'delete_field_value',
+  'delete_enum_option',
+  'force_delete_enum_option',
 
   // Notes
   'delete_note',
@@ -155,11 +162,16 @@ export const IDEMPOTENT_TOOLS = [
   'edit_time_tracking',   // Update to same values = no change
   'stop_time_tracking',   // Stop when already stopped = no change
 
+  // Labels
+  'edit_label',           // Edit to same values = no change
+  'add_label_to_project', // Add same label again = no change
+
   // Custom Fields
   'rename_custom_field',  // Rename to same name = no change
   'restore_custom_field', // Restore again = no change
   'add_or_edit_field_value', // Set same value = no change
   'add_or_edit_enum_value',  // Set same enum = no change
+  'change_enum_option',   // Change to same value = no change
 
   // Notifications
   'mark_notification_read',   // Mark read when already read = no change

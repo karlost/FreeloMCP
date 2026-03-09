@@ -4,12 +4,13 @@
  */
 
 import { z } from 'zod';
-import { createApiClient } from '../utils/apiClient.js';
+import { getApiClient } from '../utils/authHelper.js';
+import { formatResponse } from '../utils/responseFormatter.js';
+import { withErrorHandling } from '../utils/errorHandler.js';
 import { registerToolWithMetadata } from '../utils/registerToolWithMetadata.js';
-import { createArrayResponseSchema } from '../utils/schemas.js';
+import { createArrayResponseSchema, SearchResultSchema } from '../utils/schemas.js';
 
 export function registerSearchTools(server) {
-  // Search Elasticsearch
   registerToolWithMetadata(
     server,
     'search_elasticsearch',
@@ -28,36 +29,13 @@ export function registerSearchTools(server) {
         limit: z.number().optional().describe('Maximum results per page (default: 100). Control response size and performance.')
       }).describe('Search data with query and filters')
     },
-    async ({ searchData }) => {
-      try {
-        const auth = {
-          email: process.env.FREELO_EMAIL,
-          apiKey: process.env.FREELO_API_KEY,
-          userAgent: process.env.FREELO_USER_AGENT
-        };
-        const apiClient = createApiClient(auth);
-        const response = await apiClient.post('/search', searchData);
-        return {
-          content: [{ type: 'text', text: JSON.stringify(response.data) }],
-          structuredContent: response.data
-        };
-      } catch (error) {
-        console.error('Error in search_elasticsearch:', error);
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: 'Tool execution failed',
-              message: error.message,
-              details: error.response?.data || error.toString()
-            })
-          }],
-          isError: true
-        };
-      }
-    },
+    withErrorHandling('search_elasticsearch', async ({ searchData }) => {
+      const apiClient = getApiClient();
+      const response = await apiClient.post('/search', searchData);
+      return formatResponse(response.data);
+    }),
     {
-      outputSchema: createArrayResponseSchema(z.any())
+      outputSchema: createArrayResponseSchema(SearchResultSchema)
     }
   );
 }

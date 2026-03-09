@@ -6,15 +6,20 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import dotenv from 'dotenv';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
 // Load environment variables
 dotenv.config();
 
+// Read version from package.json
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf-8'));
+
 // Validate environment variables
-// Note: MCP servers communicate via stdio, so we cannot use console.log/warn
-// Missing env vars will cause authentication errors when tools are called
 if (!process.env.FREELO_EMAIL || !process.env.FREELO_API_KEY || !process.env.FREELO_USER_AGENT) {
-  // Env vars missing - tools will fail if auth params not provided
+  console.error('Warning: Missing FREELO_EMAIL, FREELO_API_KEY, or FREELO_USER_AGENT environment variables. Tools will fail.');
 }
 
 // Import tool registrations
@@ -37,13 +42,12 @@ import { registerLabelsTools } from './tools/labels.js';
 import { registerPinnedItemsTools } from './tools/pinned-items.js';
 import { registerStatesTools } from './tools/states.js';
 import { registerSearchTools } from './tools/search.js';
-import { registerCoreTools } from './tools/core.js';
 
 // Function to initialize the server and register tools
 export function initializeMcpServer() {
   const server = new McpServer({
     name: 'freelo-mcp',
-    version: '1.0.0',
+    version: pkg.version,
     description: 'MCP Server for Freelo API v1'
   });
 
@@ -67,7 +71,6 @@ export function initializeMcpServer() {
   registerPinnedItemsTools(server);
   registerStatesTools(server);
   registerSearchTools(server);
-  registerCoreTools(server);  // Core contains all tools not yet split into categories
 
   return server;
 }
@@ -87,10 +90,9 @@ export async function startStdioServer() {
   }
 }
 
-// Auto-start only when NOT imported (i.e., run directly or via bin)
-// Check if we're being imported by looking at the call stack
-const isImported = new Error().stack?.includes('mcp-server-sse.js');
+// Auto-start only when run directly (not imported)
+const isMainModule = process.argv[1] === fileURLToPath(import.meta.url);
 
-if (!isImported) {
+if (isMainModule) {
   startStdioServer();
 }

@@ -12,8 +12,10 @@ export const McpServer = jest.fn().mockImplementation(() => {
     tool: (name, schema, handler) => {
       internalMockToolsRegistry[name] = { schema, handler };
     },
+    registerTool: (name, config, handler) => {
+      internalMockToolsRegistry[name] = { config, handler };
+    },
     getTools: () => internalMockToolsRegistry,
-    // Add other necessary mocked methods if any
   };
 });
 // Export a function to get the registry

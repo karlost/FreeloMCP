@@ -32,13 +32,13 @@ const handleToolError = (error, toolName) => {
   } else if (error.request) {
     // The request was made but no response was received
     errorMessage = 'No response received from the server. Please check your network connection.';
-    errorDetails = error.request;
+    errorDetails = error.message || 'No response received';
   } else {
     // Something happened in setting up the request that triggered an Error
     errorMessage = 'Error setting up the request: ' + error.message;
   }
   
-  console.error(`Error in ${toolName} (${statusCode || 'unknown'}):`, error);
+  console.error(`Error in ${toolName} (${statusCode || 'unknown'}): ${error.message || error}`);
   
   return {
     content: [{
@@ -54,6 +54,24 @@ const handleToolError = (error, toolName) => {
   };
 };
 
+/**
+ * Wraps a tool handler with standardized error handling.
+ * Ensures no tool ever throws an exception (which would break MCP protocol).
+ * @param {string} toolName - The name of the tool
+ * @param {Function} handler - The async handler function
+ * @returns {Function} - Wrapped handler that catches all errors
+ */
+const withErrorHandling = (toolName, handler) => {
+  return async (args) => {
+    try {
+      return await handler(args);
+    } catch (error) {
+      return handleToolError(error, toolName);
+    }
+  };
+};
+
 export {
-  handleToolError
+  handleToolError,
+  withErrorHandling
 };
