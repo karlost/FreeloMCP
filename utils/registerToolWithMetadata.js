@@ -123,8 +123,12 @@ export function registerToolWithMetadata(
     }
   };
 
-  // Add outputSchema if provided
-  if (processedOutputSchema) {
+  // Add outputSchema if provided and strict output validation is enabled.
+  // Disabled by default because several Freelo API responses don't match the
+  // declared schemas (e.g. project "state" is returned as an object, not a
+  // string), which causes MCP SDK output validation errors (-32602).
+  // Set FREELO_MCP_STRICT_OUTPUT=1 to re-enable schema validation.
+  if (processedOutputSchema && process.env.FREELO_MCP_STRICT_OUTPUT === '1') {
     config.outputSchema = processedOutputSchema;
   }
 
