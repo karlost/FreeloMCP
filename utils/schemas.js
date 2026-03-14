@@ -230,7 +230,7 @@ export const WorkReportSchema = z.object({
   id: z.number().describe('Work report ID'),
   date_reported: z.string().describe('Date of work (YYYY-MM-DD)'),
   minutes: z.number().describe('Minutes worked'),
-  description: z.string().optional().nullable().describe('Work description'),
+  note: z.string().optional().nullable().describe('Work report note'),
   user: UserMinimalSchema.optional(),
   task: TaskMinimalSchema.optional(),
   project_id: z.number().optional().describe('Project ID'),

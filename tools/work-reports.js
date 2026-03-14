@@ -48,7 +48,7 @@ export function registerWorkReportsTools(server) {
       reportData: z.object({
         minutes: z.number().describe('Number of minutes worked (e.g., 120 for 2 hours, 30 for half hour). Will be converted to hours in reports.'),
         date: z.string().describe('Date of work in format YYYY-MM-DD (e.g., "2025-10-11"). Usually today\'s date or past date for retroactive entries.'),
-        description: z.string().optional().describe('Optional: Description of work performed (e.g., "Fixed login bug", "Client meeting notes"). Useful for detailed billing and reporting.')
+        note: z.string().optional().describe('Optional: Note about work performed (e.g., "Fixed login bug", "Client meeting notes"). Useful for detailed billing and reporting.')
       }).describe('Work report data')
     },
     withErrorHandling('create_work_report', async ({ taskId, reportData }) => {
@@ -71,7 +71,7 @@ export function registerWorkReportsTools(server) {
       reportData: z.object({
         minutes: z.number().optional().describe('Optional: Updated number of minutes worked (e.g., 120 for 2 hours)'),
         date: z.string().optional().describe('Optional: Updated date in format YYYY-MM-DD (e.g., "2025-10-11")'),
-        description: z.string().optional().describe('Optional: Updated description of work performed')
+        note: z.string().optional().describe('Optional: Updated note about work performed')
       }).describe('Updated work report data - all fields optional, only provide what needs to change')
     },
     withErrorHandling('update_work_report', async ({ workReportId, reportData }) => {
