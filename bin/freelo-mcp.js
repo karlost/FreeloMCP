@@ -5,5 +5,6 @@
  * Spustitelný soubor pro npx
  */
 
-// Přímý import MCP serveru
-import '../mcp-server.js';
+import { startStdioServer } from '../mcp-server.js';
+
+startStdioServer();
