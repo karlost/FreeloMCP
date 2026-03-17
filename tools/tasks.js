@@ -257,8 +257,15 @@ export function registerTasksTools(server) {
     },
     withErrorHandling('get_task_description', async ({ taskId }) => {
       const apiClient = getApiClient();
-      const response = await apiClient.get(`/task/${taskId}/description`);
-      return formatResponse(response.data);
+      try {
+        const response = await apiClient.get(`/task/${taskId}/description`);
+        return formatResponse(response.data);
+      } catch (error) {
+        if (error.response?.status === 404) {
+          return formatResponse({ content: '' });
+        }
+        throw error;
+      }
     }),
     {
       outputSchema: TaskDetailedSchema

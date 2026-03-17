@@ -22,8 +22,12 @@ const handleToolError = (error, toolName) => {
     
     if (statusCode === 401 || statusCode === 403) {
       errorMessage = 'Authentication failed. Please check your credentials.';
+    } else if (statusCode === 402) {
+      errorMessage = 'Payment required. This is a premium feature — your Freelo plan does not include it.';
     } else if (statusCode === 404) {
       errorMessage = 'The requested resource was not found.';
+    } else if (statusCode === 429) {
+      errorMessage = 'Rate limit exceeded. Maximum 25 requests per minute — wait 60 seconds before retrying.';
     } else if (statusCode >= 400 && statusCode < 500) {
       errorMessage = 'The request was invalid or could not be processed.';
     } else if (statusCode >= 500) {
