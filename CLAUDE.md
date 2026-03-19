@@ -102,7 +102,6 @@ FREELO_USER_AGENT=freelo-mcp
 ## Known Issues
 
 - `get_all_tasks` with `projectId` filter returns tasks from all projects (Freelo API limitation)
-- `upload_file` may fail (API expects Blob, not Base64)
 - `create_subtask` returns incorrect `task_id` in response
 - `get_subtasks` returns subtasks from entire project instead of filtering by `taskId`
 

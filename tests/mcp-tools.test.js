@@ -981,4 +981,108 @@ describe('MCP Tools', () => {
       expect(downloadData.contentType).toBe('text/plain');
     });
   });
+
+  // Test upload_file with filePath
+  describe('upload_file with filePath', () => {
+    it('should upload a file from disk using filePath', async () => {
+      const fs = await import('fs');
+      const os = await import('os');
+      const path = await import('path');
+      // Create a temporary file
+      const tmpDir = os.default.tmpdir();
+      const tmpFile = path.default.join(tmpDir, `freelo-test-${randomString(8)}.txt`);
+      const fileContent = `Test file content ${randomString(10)}`;
+      fs.default.writeFileSync(tmpFile, fileContent);
+
+      const mockFileUuid = 'filepath-upload-uuid-1234';
+      const mockUploadResponse = { uuid: mockFileUuid };
+
+      nock(TEST_ENV.FREELO_API_BASE_URL)
+        .post('/file/upload')
+        .reply(200, mockUploadResponse);
+
+      try {
+        const result = await tools.upload_file.handler({
+          filePath: tmpFile
+        });
+
+        expect(isValidResponse(result)).toBe(true);
+        const data = getResponseData(result);
+        expect(data).toHaveProperty('uuid', mockFileUuid);
+      } finally {
+        // Clean up temp file
+        fs.default.unlinkSync(tmpFile);
+      }
+    });
+
+    it('should use custom fileName when provided with filePath', async () => {
+      const fs = await import('fs');
+      const os = await import('os');
+      const path = await import('path');
+      const tmpDir = os.default.tmpdir();
+      const tmpFile = path.default.join(tmpDir, `freelo-test-${randomString(8)}.txt`);
+      fs.default.writeFileSync(tmpFile, 'test content');
+
+      const mockUploadResponse = { uuid: 'custom-name-uuid' };
+
+      nock(TEST_ENV.FREELO_API_BASE_URL)
+        .post('/file/upload')
+        .reply(200, mockUploadResponse);
+
+      try {
+        const result = await tools.upload_file.handler({
+          filePath: tmpFile,
+          fileName: 'custom-name.txt'
+        });
+
+        expect(isValidResponse(result)).toBe(true);
+        const data = getResponseData(result);
+        expect(data).toHaveProperty('uuid', 'custom-name-uuid');
+      } finally {
+        fs.default.unlinkSync(tmpFile);
+      }
+    });
+
+    it('should fail when file does not exist', async () => {
+      const result = await tools.upload_file.handler({
+        filePath: '/nonexistent/path/file.txt'
+      });
+
+      expect(result.isError).toBe(true);
+      const errorText = result.content[0].text;
+      expect(errorText).toContain('File not found');
+    });
+
+    it('should fail when neither filePath nor fileData is provided', async () => {
+      const result = await tools.upload_file.handler({
+        fileName: 'test.txt'
+      });
+
+      expect(result.isError).toBe(true);
+      const errorText = result.content[0].text;
+      expect(errorText).toContain('Either filePath or fileData must be provided');
+    });
+
+    it('should fail when both filePath and fileData are provided', async () => {
+      const result = await tools.upload_file.handler({
+        filePath: '/some/file.txt',
+        fileData: 'dGVzdA==',
+        fileName: 'test.txt'
+      });
+
+      expect(result.isError).toBe(true);
+      const errorText = result.content[0].text;
+      expect(errorText).toContain('Provide either filePath or fileData, not both');
+    });
+
+    it('should fail when fileData is provided without fileName', async () => {
+      const result = await tools.upload_file.handler({
+        fileData: 'dGVzdA=='
+      });
+
+      expect(result.isError).toBe(true);
+      const errorText = result.content[0].text;
+      expect(errorText).toContain('fileName is required when using fileData');
+    });
+  });
 });

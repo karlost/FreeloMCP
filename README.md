@@ -549,9 +549,10 @@ docker run -p 3000:3000 freelo-mcp-sse
   - `type` - Typ (directory, link, file, document)
   - `p` - Pagination
 
-- `upload_file` - Upload souboru (✅ opraveno - FormData)
-  - Parametr `fileData` - Base64 encoded file
-  - Parametr `fileName` - Název souboru
+- `upload_file` - Upload souboru (max 100MB)
+  - Parametr `filePath` - Cesta k lokálnímu souboru (preferováno pro velké soubory)
+  - Parametr `fileData` - Base64 encoded file (pro malé soubory / data v paměti)
+  - Parametr `fileName` - Název souboru (povinný při fileData, volitelný při filePath)
 
 - `download_file` - Stažení souboru podle UUID
 
@@ -766,7 +767,12 @@ await stop_time_tracking()
 ### Soubory
 
 ```javascript
-// Upload souboru
+// Upload souboru z disku (preferováno pro velké soubory)
+await upload_file({
+  filePath: "/cesta/k/dokument.pdf"
+})
+
+// Upload souboru z base64 (pro malé soubory / data v paměti)
 const base64Data = Buffer.from("obsah souboru").toString('base64')
 await upload_file({
   fileName: "dokument.pdf",
