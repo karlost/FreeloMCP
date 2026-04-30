@@ -134,7 +134,13 @@ export function registerCustomFieldsTools(server) {
     },
     withErrorHandling('add_or_edit_enum_value', async ({ valueData }) => {
       const apiClient = getApiClient();
-      const response = await apiClient.post('/custom-field/add-or-edit-enum-value', valueData);
+      // The Freelo API expects `value`, not `enum_option_uuid` — sending the
+      // wrong field name resulted in a 400 with "Expected a string. Got: NULL"
+      // (#13). Keep the schema's user-facing key intact for backwards
+      // compatibility but rename it on the wire.
+      const { enum_option_uuid, ...rest } = valueData;
+      const payload = { ...rest, value: enum_option_uuid };
+      const response = await apiClient.post('/custom-field/add-or-edit-enum-value', payload);
       return formatResponse(response.data);
     }),
     {
@@ -258,7 +264,14 @@ export function registerCustomFieldsTools(server) {
     },
     withErrorHandling('create_enum_option', async ({ customFieldUuid, optionData }) => {
       const apiClient = getApiClient();
-      const response = await apiClient.post(`/custom-field-enum/create/${customFieldUuid}`, optionData);
+      // Freelo expects `value`, not `name`, on this endpoint — sending
+      // `name` returned `Expected a string. Got: NULL` because the
+      // required `value` field was missing (#13). Translate before send.
+      const payload = { value: optionData.name };
+      if (optionData.color) {
+        payload.color = optionData.color;
+      }
+      const response = await apiClient.post(`/custom-field-enum/create/${customFieldUuid}`, payload);
       return formatResponse(response.data);
     }),
     {
