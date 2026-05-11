@@ -134,7 +134,7 @@ export function registerCustomFieldsTools(server) {
     },
     withErrorHandling('add_or_edit_enum_value', async ({ valueData }) => {
       const apiClient = getApiClient();
-      // The Freelo API expects `value`, not `enum_option_uuid` — sending the
+      // The Freelo API expects `value`, not `enum_option_uuid`, sending the
       // wrong field name resulted in a 400 with "Expected a string. Got: NULL"
       // (#13). Keep the schema's user-facing key intact for backwards
       // compatibility but rename it on the wire.
@@ -264,7 +264,7 @@ export function registerCustomFieldsTools(server) {
     },
     withErrorHandling('create_enum_option', async ({ customFieldUuid, optionData }) => {
       const apiClient = getApiClient();
-      // Freelo expects `value`, not `name`, on this endpoint — sending
+      // Freelo expects `value`, not `name`, on this endpoint, sending
       // `name` returned `Expected a string. Got: NULL` because the
       // required `value` field was missing (#13). Translate before send.
       const payload = { value: optionData.name };
