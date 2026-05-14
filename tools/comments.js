@@ -42,7 +42,7 @@ export function registerCommentsTools(server) {
   registerToolWithMetadata(
     server,
     'edit_comment',
-    'Edits an existing comment on a task. Only the comment author or project admin can edit comments. You can update the text content and modify attached files. Use get_all_comments to retrieve comment IDs. For creating new comments, use create_comment instead.',
+    'Edits an existing comment on a task. ⚠️ KNOWN FREELO API LIMITATION (#12): editing a comment via this endpoint ALWAYS removes existing file attachments, even when re-passing the same file UUIDs. The API response may confirm attachments, but the Freelo UI shows none and there is no workaround (no delete-comment endpoint exists either). AVOID editing comments that have attachments. Only the comment author or project admin can edit comments. Use get_all_comments to retrieve comment IDs. For creating new comments, use create_comment instead.',
     {
       commentId: z.string().describe('Unique comment identifier (numeric string, e.g., "12345"). Get from get_all_comments.'),
       commentData: z.object({
