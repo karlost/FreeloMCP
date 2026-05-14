@@ -104,6 +104,7 @@ FREELO_USER_AGENT=freelo-mcp
 - `get_all_tasks` with `projectId` filter returns tasks from all projects (Freelo API limitation)
 - `create_subtask` returns incorrect `task_id` in response
 - `get_subtasks` returns subtasks from entire project instead of filtering by `taskId`
+- `edit_comment` permanently strips all file attachments — Freelo API limitation, no workaround (see #12)
 
 ## Module System
 
