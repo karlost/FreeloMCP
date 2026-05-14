@@ -315,8 +315,15 @@ describe('Custom Fields Tools', () => {
         custom_field_uuid: CUSTOM_FIELD_UUID,
         enum_option_uuid: ENUM_OPTION_UUID
       };
+      // The wire payload renames `enum_option_uuid` to `value` per the
+      // Freelo API contract (#13).
+      const wirePayload = {
+        task_id: TEST_DATA.taskId,
+        custom_field_uuid: CUSTOM_FIELD_UUID,
+        value: ENUM_OPTION_UUID
+      };
       const mockResponse = { success: true };
-      mockFreeloApi('POST', '/custom-field/add-or-edit-enum-value', 200, mockResponse, valueData);
+      mockFreeloApi('POST', '/custom-field/add-or-edit-enum-value', 200, mockResponse, wirePayload);
 
       const result = await tools.add_or_edit_enum_value.handler({ valueData });
 
@@ -331,10 +338,15 @@ describe('Custom Fields Tools', () => {
         custom_field_uuid: CUSTOM_FIELD_UUID,
         enum_option_uuid: 'invalid-uuid'
       };
+      const wirePayload = {
+        task_id: TEST_DATA.taskId,
+        custom_field_uuid: CUSTOM_FIELD_UUID,
+        value: 'invalid-uuid'
+      };
       mockFreeloApi('POST', '/custom-field/add-or-edit-enum-value', 400, {
         error: 'Bad Request',
         message: 'Invalid enum option'
-      }, valueData);
+      }, wirePayload);
 
       const result = await tools.add_or_edit_enum_value.handler({ valueData });
 
@@ -463,11 +475,14 @@ describe('Custom Fields Tools', () => {
         name: 'Critical',
         color: '#FF0000'
       };
+      // The wire payload renames `name` to `value` per the Freelo API
+      // contract (#13).
+      const wirePayload = { value: 'Critical', color: '#FF0000' };
       const mockResponse = {
         id: ENUM_OPTION_UUID,
         value: 'Critical'
       };
-      mockFreeloApi('POST', `/custom-field-enum/create/${CUSTOM_FIELD_UUID}`, 200, mockResponse, optionData);
+      mockFreeloApi('POST', `/custom-field-enum/create/${CUSTOM_FIELD_UUID}`, 200, mockResponse, wirePayload);
 
       const result = await tools.create_enum_option.handler({
         customFieldUuid: CUSTOM_FIELD_UUID,
@@ -484,11 +499,12 @@ describe('Custom Fields Tools', () => {
       const optionData = {
         name: 'Low Priority'
       };
+      const wirePayload = { value: 'Low Priority' };
       const mockResponse = {
         id: 'eo-uuid-new',
         value: 'Low Priority'
       };
-      mockFreeloApi('POST', `/custom-field-enum/create/${CUSTOM_FIELD_UUID}`, 200, mockResponse, optionData);
+      mockFreeloApi('POST', `/custom-field-enum/create/${CUSTOM_FIELD_UUID}`, 200, mockResponse, wirePayload);
 
       const result = await tools.create_enum_option.handler({
         customFieldUuid: CUSTOM_FIELD_UUID,
@@ -728,10 +744,11 @@ describe('Custom Fields Tools', () => {
 
       // 2. Create enum options
       const option1Data = { name: 'High', color: '#FF0000' };
+      const option1Wire = { value: 'High', color: '#FF0000' };
       mockFreeloApi('POST', `/custom-field-enum/create/${CUSTOM_FIELD_UUID}`, 200, {
         id: ENUM_OPTION_UUID,
         value: 'High'
-      }, option1Data);
+      }, option1Wire);
       const createOption1Result = await tools.create_enum_option.handler({
         customFieldUuid: CUSTOM_FIELD_UUID,
         optionData: option1Data
@@ -770,7 +787,12 @@ describe('Custom Fields Tools', () => {
         custom_field_uuid: CUSTOM_FIELD_UUID,
         enum_option_uuid: ENUM_OPTION_UUID
       };
-      mockFreeloApi('POST', '/custom-field/add-or-edit-enum-value', 200, { success: true }, enumValueData);
+      const enumValueWire = {
+        task_id: TEST_DATA.taskId,
+        custom_field_uuid: CUSTOM_FIELD_UUID,
+        value: ENUM_OPTION_UUID
+      };
+      mockFreeloApi('POST', '/custom-field/add-or-edit-enum-value', 200, { success: true }, enumValueWire);
       const assignResult = await tools.add_or_edit_enum_value.handler({ valueData: enumValueData });
       expect(isValidResponse(assignResult)).toBe(true);
       expect(getResponseData(assignResult)).toHaveProperty('success', true);
