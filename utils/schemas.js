@@ -132,7 +132,10 @@ export const ProjectSchema = z.object({
   tasklists: z.array(TasklistMinimalSchema).optional().describe('Active tasklists'),
   client: ClientSchema.optional().nullable().describe('Client information'),
   owner: UserMinimalSchema.optional().nullable().describe('Project owner'),
-  state: z.string().optional().describe('Project state'),
+  state: z.object({
+    id: z.number(),
+    state: z.string()
+  }).optional().describe('Project state object'),
   currency_iso: z.enum(['CZK', 'EUR', 'USD']).optional().describe('Project currency')
 }).describe('Project object');
 
