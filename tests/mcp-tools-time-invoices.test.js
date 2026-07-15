@@ -247,12 +247,19 @@ describe('Time Tracking/Work Reports/Invoices Tools', () => {
         date: '2026-03-09',
         description: 'Implemented new feature'
       };
+      // The wire payload renames `date` to `date_reported` per the Freelo
+      // API contract (#17).
+      const wirePayload = {
+        minutes: 120,
+        date_reported: '2026-03-09',
+        description: 'Implemented new feature'
+      };
       const mockResponse = {
         id: 5001,
         task_id: TEST_DATA.taskId,
         ...reportData
       };
-      mockFreeloApi('POST', `/task/${TEST_DATA.taskId}/work-reports`, 200, mockResponse, reportData);
+      mockFreeloApi('POST', `/task/${TEST_DATA.taskId}/work-reports`, 200, mockResponse, wirePayload);
 
       const result = await tools.create_work_report.handler({
         taskId: TEST_DATA.taskId,
@@ -273,12 +280,16 @@ describe('Time Tracking/Work Reports/Invoices Tools', () => {
         minutes: 30,
         date: '2026-03-09'
       };
+      const wirePayload = {
+        minutes: 30,
+        date_reported: '2026-03-09'
+      };
       const mockResponse = {
         id: 5002,
         task_id: TEST_DATA.taskId,
         ...reportData
       };
-      mockFreeloApi('POST', `/task/${TEST_DATA.taskId}/work-reports`, 200, mockResponse, reportData);
+      mockFreeloApi('POST', `/task/${TEST_DATA.taskId}/work-reports`, 200, mockResponse, wirePayload);
 
       const result = await tools.create_work_report.handler({
         taskId: TEST_DATA.taskId,
@@ -291,6 +302,33 @@ describe('Time Tracking/Work Reports/Invoices Tools', () => {
       expect(data).toHaveProperty('minutes', 30);
     });
 
+    it('should forward a date with a start time as date_reported', async () => {
+      const reportData = {
+        minutes: 55,
+        date: '2026-03-09 13:20'
+      };
+      const wirePayload = {
+        minutes: 55,
+        date_reported: '2026-03-09 13:20'
+      };
+      const mockResponse = {
+        id: 5003,
+        task_id: TEST_DATA.taskId,
+        minutes: 55,
+        date_reported: '2026-03-09T13:20:00+01:00'
+      };
+      mockFreeloApi('POST', `/task/${TEST_DATA.taskId}/work-reports`, 200, mockResponse, wirePayload);
+
+      const result = await tools.create_work_report.handler({
+        taskId: TEST_DATA.taskId,
+        reportData
+      });
+
+      expect(isValidResponse(result)).toBe(true);
+      const data = getResponseData(result);
+      expect(data).toHaveProperty('date_reported', '2026-03-09T13:20:00+01:00');
+    });
+
     it('should handle errors when creating a work report', async () => {
       const reportData = {
         minutes: 120,
@@ -299,7 +337,7 @@ describe('Time Tracking/Work Reports/Invoices Tools', () => {
       mockFreeloApi('POST', `/task/${TEST_DATA.taskId}/work-reports`, 400, {
         error: 'Bad Request',
         message: 'Invalid task ID'
-      }, reportData);
+      }, { minutes: 120, date_reported: '2026-03-09' });
 
       const result = await tools.create_work_report.handler({
         taskId: TEST_DATA.taskId,
@@ -343,6 +381,10 @@ describe('Time Tracking/Work Reports/Invoices Tools', () => {
       const reportData = {
         date: '2026-03-08'
       };
+      // Only `date` was provided, so `date_reported` is the sole wire field (#17).
+      const wirePayload = {
+        date_reported: '2026-03-08'
+      };
       const mockResponse = {
         id: Number(workReportId),
         task_id: TEST_DATA.taskId,
@@ -350,7 +392,7 @@ describe('Time Tracking/Work Reports/Invoices Tools', () => {
         date: '2026-03-08',
         description: 'Original description'
       };
-      mockFreeloApi('POST', `/work-reports/${workReportId}`, 200, mockResponse, reportData);
+      mockFreeloApi('POST', `/work-reports/${workReportId}`, 200, mockResponse, wirePayload);
 
       const result = await tools.update_work_report.handler({
         workReportId,
@@ -680,7 +722,7 @@ describe('Time Tracking/Work Reports/Invoices Tools', () => {
       const createData = { minutes: 120, date: '2026-03-09', description: 'Initial work' };
       mockFreeloApi('POST', `/task/${TEST_DATA.taskId}/work-reports`, 200, {
         id: 9001, task_id: TEST_DATA.taskId, ...createData
-      }, createData);
+      }, { minutes: 120, date_reported: '2026-03-09', description: 'Initial work' });
 
       const createResult = await tools.create_work_report.handler({
         taskId: TEST_DATA.taskId,
