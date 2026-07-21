@@ -47,13 +47,19 @@ export function registerWorkReportsTools(server) {
       taskId: z.string().describe('Unique task identifier (numeric string, e.g., "12345"). Get from get_all_tasks, get_tasklist_tasks, or get_task_details.'),
       reportData: z.object({
         minutes: z.number().describe('Number of minutes worked (e.g., 120 for 2 hours, 30 for half hour). Will be converted to hours in reports.'),
-        date: z.string().describe('Date of work in format YYYY-MM-DD (e.g., "2025-10-11"). Usually today\'s date or past date for retroactive entries.'),
+        date: z.string().describe('Date of work in format YYYY-MM-DD (e.g., "2025-10-11"), or YYYY-MM-DD HH:MM (e.g., "2025-10-11 09:30") to also set the start time. Usually today\'s date or past date for retroactive entries.'),
         note: z.string().optional().describe('Optional: Note about work performed (e.g., "Fixed login bug", "Client meeting notes"). Useful for detailed billing and reporting.')
       }).describe('Work report data')
     },
     withErrorHandling('create_work_report', async ({ taskId, reportData }) => {
       const apiClient = getApiClient();
-      const response = await apiClient.post(`/task/${taskId}/work-reports`, reportData);
+      // Freelo expects `date_reported`, not `date`, on this endpoint. Sending
+      // `date` is silently ignored: the API drops the unknown field and stamps
+      // the entry with the current time, so every retroactive entry lands on
+      // today (#17). Translate before send.
+      const { date, ...rest } = reportData;
+      const payload = { ...rest, date_reported: date };
+      const response = await apiClient.post(`/task/${taskId}/work-reports`, payload);
       return formatResponse(response.data);
     }),
     {
@@ -70,13 +76,21 @@ export function registerWorkReportsTools(server) {
       workReportId: z.string().describe('Unique work report identifier (numeric string, e.g., "12345"). Get from get_work_reports response.'),
       reportData: z.object({
         minutes: z.number().optional().describe('Optional: Updated number of minutes worked (e.g., 120 for 2 hours)'),
-        date: z.string().optional().describe('Optional: Updated date in format YYYY-MM-DD (e.g., "2025-10-11")'),
+        date: z.string().optional().describe('Optional: Updated date in format YYYY-MM-DD (e.g., "2025-10-11"), or YYYY-MM-DD HH:MM (e.g., "2025-10-11 09:30") to also set the start time'),
         note: z.string().optional().describe('Optional: Updated note about work performed')
       }).describe('Updated work report data - all fields optional, only provide what needs to change')
     },
     withErrorHandling('update_work_report', async ({ workReportId, reportData }) => {
       const apiClient = getApiClient();
-      const response = await apiClient.post(`/work-reports/${workReportId}`, reportData);
+      // Same `date` to `date_reported` mapping as create_work_report (#17).
+      // Without it the date is silently ignored and the entry keeps its
+      // original timestamp.
+      const { date, ...rest } = reportData;
+      const payload = { ...rest };
+      if (date !== undefined) {
+        payload.date_reported = date;
+      }
+      const response = await apiClient.post(`/work-reports/${workReportId}`, payload);
       return formatResponse(response.data);
     }),
     {
