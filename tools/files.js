@@ -41,7 +41,7 @@ export function registerFilesTools(server) {
   registerToolWithMetadata(
     server,
     'upload_file',
-    'Uploads a file to Freelo (max 100MB). Supports two modes: (1) filePath — reads file directly from disk, best for large files and avoids base64 overhead; (2) fileData — accepts base64-encoded content, useful when file data is already in memory. Provide either filePath or fileData (not both). After upload, use the returned UUID to attach the file to tasks or comments via the files parameter.',
+    'Uploads a file to Freelo (max 100MB). Supports two modes: (1) filePath — reads file directly from disk, best for large files and avoids base64 overhead; (2) fileData — accepts base64-encoded content, useful when file data is already in memory. Provide either filePath or fileData (not both). After upload, attach the file to a comment by passing the returned UUID (ideally as { uuid, name }) in fileUuids of create_comment or edit_comment.',
     {
       filePath: z.string().optional().describe('Absolute path to a local file to upload (e.g., "/Users/me/docs/report.pdf"). Preferred for large files — reads directly from disk with no base64 overhead. Mutually exclusive with fileData.'),
       fileData: z.string().optional().describe('File content encoded as base64 string. Use for small files or when file data is already in memory. Mutually exclusive with filePath.'),

@@ -11,6 +11,25 @@ import { registerToolWithMetadata } from '../utils/registerToolWithMetadata.js';
 import { unwrapPaginatedResponse } from '../utils/paginationHelper.js';
 import { CommentSchema, createArrayResponseSchema } from '../utils/schemas.js';
 
+// Attachments passed via the `files` array are dropped by Freelo whenever the
+// comment is edited later (#12). Inline `<a data-freelo-uuid>` links in the
+// content survive edits: Freelo expands them into `data-freelo-file` on save.
+// The link text becomes the attachment name shown in the Freelo UI.
+const escapeHtml = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const appendInlineFiles = (content, fileUuids = []) =>
+  content + fileUuids.map(file => {
+    const { uuid, name } = typeof file === 'string' ? { uuid: file } : file;
+    return `<a data-freelo-uuid="${escapeHtml(uuid)}">${escapeHtml(name || uuid)}</a>`;
+  }).join('');
+
+const fileUuidsSchema = z.array(z.union([
+  z.string(),
+  z.object({
+    uuid: z.string().describe('File UUID from upload_file'),
+    name: z.string().optional().describe('Attachment name shown in Freelo, e.g. "report.pdf". Defaults to the UUID.')
+  })
+]));
+
 export function registerCommentsTools(server) {
   // Create comment
   registerToolWithMetadata(
@@ -21,15 +40,12 @@ export function registerCommentsTools(server) {
       taskId: z.string().describe('Unique task identifier (numeric string, e.g., "12345"). Get from get_all_tasks or get_tasklist_tasks.'),
       commentData: z.object({
         content: z.string().describe('Comment content - text of the comment (supports plain text and markdown)'),
-        fileUuids: z.array(z.string()).optional().describe('Optional: Array of file UUIDs to attach to the comment. Get UUIDs from upload_file.')
+        fileUuids: fileUuidsSchema.optional().describe('Optional: Files to attach, from upload_file. Each item is a UUID string or { uuid, name } (name is the attachment label shown in Freelo; pass the original filename, otherwise the UUID is shown). Appended to content as inline `<a data-freelo-uuid>` links, which Freelo turns into attachments that survive later edits.')
       }).describe('Comment creation data')
     },
     withErrorHandling('create_comment', async ({ taskId, commentData }) => {
       const apiClient = getApiClient();
-      const body = { content: commentData.content };
-      if (commentData.fileUuids && commentData.fileUuids.length > 0) {
-        body.files = commentData.fileUuids.map(uuid => ({ uuid }));
-      }
+      const body = { content: appendInlineFiles(commentData.content, commentData.fileUuids) };
       const response = await apiClient.post(`/task/${taskId}/comments`, body);
       return formatResponse(response.data);
     }),
@@ -42,20 +58,17 @@ export function registerCommentsTools(server) {
   registerToolWithMetadata(
     server,
     'edit_comment',
-    'Edits an existing comment on a task. ⚠️ KNOWN FREELO API LIMITATION (#12): editing a comment via this endpoint ALWAYS removes existing file attachments, even when re-passing the same file UUIDs. The API response may confirm attachments, but the Freelo UI shows none and there is no workaround (no delete-comment endpoint exists either). AVOID editing comments that have attachments. Only the comment author or project admin can edit comments. Use get_all_comments to retrieve comment IDs. For creating new comments, use create_comment instead.',
+    'Edits an existing comment on a task. The new content REPLACES the old one. ⚠️ Attachments (#12): files attached through the API `files` array are always removed by an edit. Attachments that live inline in the content (`<a data-freelo-file=...>` / `<a data-freelo-uuid=...>`, which is how create_comment and edit_comment attach fileUuids) survive, as long as you keep that markup in the new content. Read the current content first (get_all_comments or get_task_details) and edit it, do not rewrite it from scratch. Only the comment author or project admin can edit comments. For creating new comments, use create_comment instead.',
     {
       commentId: z.string().describe('Unique comment identifier (numeric string, e.g., "12345"). Get from get_all_comments.'),
       commentData: z.object({
         content: z.string().describe('Updated comment content - new text for the comment (supports plain text and markdown)'),
-        fileUuids: z.array(z.string()).optional().describe('Optional: Array of file UUIDs to attach (replaces existing attachments). Get UUIDs from upload_file.')
+        fileUuids: fileUuidsSchema.optional().describe('Optional: Files to add as new attachments, from upload_file. Each item is a UUID string or { uuid, name }. Appended to content as inline `<a data-freelo-uuid>` links.')
       }).describe('Updated comment data')
     },
     withErrorHandling('edit_comment', async ({ commentId, commentData }) => {
       const apiClient = getApiClient();
-      const body = { content: commentData.content };
-      if (commentData.fileUuids && commentData.fileUuids.length > 0) {
-        body.files = commentData.fileUuids.map(uuid => ({ uuid }));
-      }
+      const body = { content: appendInlineFiles(commentData.content, commentData.fileUuids) };
       const response = await apiClient.post(`/comment/${commentId}`, body);
       return formatResponse(response.data);
     }),

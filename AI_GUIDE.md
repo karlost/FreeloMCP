@@ -343,6 +343,7 @@ Organization
 #### File Handling
 - **upload_file**: Small files (<5MB), simple base64 encoding
 - **upload_file (FormData)**: Large files, multipart upload
+- **Attach a file to a comment**: `upload_file` → UUID → `create_comment` / `edit_comment` with `fileUuids: [{ uuid, name: "report.pdf" }]`. The file is embedded inline in the comment content, so later edits keep it as long as you keep the existing `<a data-freelo-file=...>` markup.
 
 ---
 
@@ -638,8 +639,8 @@ async function getAllTasks(projectId) {
 ### Invoicing (4 tools)
 - get_issued_invoices, get_invoice_detail, download_invoice_reports, mark_as_invoiced
 
-### Comments (1 tool)
-- get_all_comments
+### Comments (3 tools)
+- create_comment, edit_comment, get_all_comments
 
 ### Search (1 tool)
 - search_elasticsearch
@@ -662,6 +663,9 @@ async function getAllTasks(projectId) {
 
 ### Q: How do I handle large file uploads?
 **A:** Files <5MB: use base64 encoding. Files >5MB: use FormData with multipart upload (see upload_file tool).
+
+### Q: How do I edit a comment without losing its attachments?
+**A:** `edit_comment` replaces the whole content. Read the current content first (`get_all_comments` or `get_task_details`), change only the text and keep every `<a data-freelo-file=...>` link. Attachments added through the API `files` array (not used by this server) are always lost on edit, see #12.
 
 ### Q: What happens when I finish_task?
 **A:** Task state changes to "finished" (state_id: 2), task moves to completed section, and completion timestamp is recorded.
